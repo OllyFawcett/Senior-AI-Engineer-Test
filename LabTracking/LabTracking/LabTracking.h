@@ -11,6 +11,8 @@ public:
     LabTracking(QWidget *parent = nullptr);
     ~LabTracking();
 
+    QLabel* GetCameraViewLabel() const { return ui.cameraViewLabel; }
+
 private:
     Ui::LabTrackingClass ui;
 };
