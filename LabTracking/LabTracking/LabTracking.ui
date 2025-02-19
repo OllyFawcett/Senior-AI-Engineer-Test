@@ -1,28 +1,180 @@
-<UI version="4.0" >
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
  <class>LabTrackingClass</class>
- <widget class="QMainWindow" name="LabTrackingClass" >
-  <property name="objectName" >
-   <string notr="true">LabTrackingClass</string>
-  </property>
-  <property name="geometry" >
+ <widget class="QMainWindow" name="LabTrackingClass">
+  <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
-    <height>400</height>
+    <width>820</width>
+    <height>540</height>
    </rect>
   </property>
-  <property name="windowTitle" >
+  <property name="windowTitle">
    <string>LabTracking</string>
-  </property>  <widget class="QMenuBar" name="menuBar" />
-  <widget class="QToolBar" name="mainToolBar" />
-  <widget class="QWidget" name="centralWidget" />
-  <widget class="QStatusBar" name="statusBar" />
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QGridLayout" name="gridLayout_2">
+    <item row="0" column="0">
+     <widget class="QLabel" name="cameraViewLabel">
+      <property name="styleSheet">
+       <string notr="true">background-color: rgb(199, 199, 199);</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1">
+     <widget class="QFrame" name="frame">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>200</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">/* Style for the side panel frame (set its objectName to &quot;sidePanel&quot; in Qt Creator) */
+QFrame {
+    background-color: #f9f9f9; /* very light gray background */
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* Style for QLabel (applies to all labels, or you can restrict by object name if needed) */
+QLabel {
+    font-family: &quot;Segoe UI&quot;, Arial, sans-serif;
+    font-size: 14px;
+    color: #333333;
+    margin-bottom: 10px;
+}
+
+/* Style for QCheckBox text */
+QCheckBox {
+    font-family: &quot;Segoe UI&quot;, Arial, sans-serif;
+    font-size: 13px;
+    color: #333333;
+    spacing: 6px;
+}
+
+/* Customize the check box indicator */
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+}
+
+/* When the checkbox is not checked */
+QCheckBox::indicator:unchecked {
+    border: 1px solid #777777;
+    background-color: #ffffff;
+    border-radius: 4px;
+}
+
+/* When the checkbox is checked */
+QCheckBox::indicator:checked {
+    background-color: #0078d7; /* blue color */
+    border: 1px solid #0078d7;
+    border-radius: 4px;
+}
+</string>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Shadow::Raised</enum>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="0" column="0">
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QLabel" name="label">
+           <property name="text">
+            <string>Control Panel</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="Line" name="line">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox">
+           <property name="text">
+            <string>Show Hand Detections</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox_2">
+           <property name="text">
+            <string>Show Bottle Detections</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox_3">
+           <property name="text">
+            <string>Show Petri Dish Detections</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>820</width>
+     <height>21</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
  </widget>
- <layoutDefault spacing="6" margin="11" />
- <pixmapfunction></pixmapfunction>
+ <layoutdefault spacing="6" margin="11"/>
  <resources>
-   <include location="LabTracking.qrc"/>
+  <include location="LabTracking.qrc"/>
  </resources>
  <connections/>
-</UI>
+</ui>
