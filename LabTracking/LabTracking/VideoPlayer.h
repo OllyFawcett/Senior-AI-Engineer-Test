@@ -1,9 +1,9 @@
 #include <QObject>
-#include <QLabel>
 #include <QTimer>
 #include <opencv2/opencv.hpp>
 #include <memory>
 #include "DetectorsHandler.h"
+#include "LabTracking.h"
 
 class VideoPlayer : public QObject
 {

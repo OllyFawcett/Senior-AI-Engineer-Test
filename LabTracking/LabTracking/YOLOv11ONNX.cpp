@@ -204,11 +204,6 @@ bool YOLOv11ONNX::Postprocess(const cv::Size& originalImageSize, const cv::Size&
                         roundedBox.width = std::round(scaledBox.width);
                         roundedBox.height = std::round(scaledBox.height);
 
-                        BoundingBox nmsBox = roundedBox;
-                        nmsBox.x += classId * 7680;
-                        nmsBox.y += classId * 7680;
-
-                        nms_boxes.push_back(nmsBox);
                         boxes.push_back(roundedBox);
                         confs.push_back(maxScore);
                         classIds.push_back(classId);
@@ -216,7 +211,7 @@ bool YOLOv11ONNX::Postprocess(const cv::Size& originalImageSize, const cv::Size&
                 }
 
                 std::vector<uint32_t> indices;
-                NMSBoxes(nms_boxes, confs, confThreshold, iouThreshold, indices);
+                NMSBoxes(boxes, confs, confThreshold, iouThreshold, indices);
 
                 detections.reserve(indices.size());
                 for (const uint32_t idx : indices)
@@ -247,27 +242,28 @@ YOLOv11ONNX::BoundingBox YOLOv11ONNX::ScaleCoords(const cv::Size& imageShape, Bo
     return result;
 }
 
-void YOLOv11ONNX::NMSBoxes(const std::vector<BoundingBox>& boundingBoxes,
-    const std::vector<float>& scores,
-    float scoreThreshold,
-    float nmsThreshold,
-    std::vector<uint32_t>& indices)
+void YOLOv11ONNX::NMSBoxes(const std::vector<BoundingBox>& boundingBoxes, const std::vector<float>& scores, float scoreThreshold,
+                            float nmsThreshold, std::vector<uint32_t>& indices)
 {
     indices.clear();
 
     const size_t numBoxes = boundingBoxes.size();
-    if (numBoxes == 0) {
+    if (numBoxes == 0) 
+    {
         return;
     }
     std::vector<int> sortedIndices;
     sortedIndices.reserve(numBoxes);
-    for (size_t i = 0; i < numBoxes; ++i) {
-        if (scores[i] >= scoreThreshold) {
+    for (size_t i = 0; i < numBoxes; ++i) 
+    {
+        if (scores[i] >= scoreThreshold) 
+        {
             sortedIndices.push_back(static_cast<int>(i));
         }
     }
 
-    if (sortedIndices.empty()) {
+    if (sortedIndices.empty()) 
+    {
         return;
     }
 
@@ -277,15 +273,18 @@ void YOLOv11ONNX::NMSBoxes(const std::vector<BoundingBox>& boundingBoxes,
         });
 
     std::vector<float> areas(numBoxes, 0.0f);
-    for (size_t i = 0; i < numBoxes; ++i) {
+    for (size_t i = 0; i < numBoxes; ++i) 
+    {
         areas[i] = boundingBoxes[i].width * boundingBoxes[i].height;
     }
 
     std::vector<bool> suppressed(numBoxes, false);
 
-    for (size_t i = 0; i < sortedIndices.size(); ++i) {
+    for (size_t i = 0; i < sortedIndices.size(); ++i) 
+    {
         int currentIdx = sortedIndices[i];
-        if (suppressed[currentIdx]) {
+        if (suppressed[currentIdx])
+        {
             continue;
         }
 
@@ -298,9 +297,11 @@ void YOLOv11ONNX::NMSBoxes(const std::vector<BoundingBox>& boundingBoxes,
         const float y2_max = currentBox.y + currentBox.height;
         const float area_current = areas[currentIdx];
 
-        for (size_t j = i + 1; j < sortedIndices.size(); ++j) {
+        for (size_t j = i + 1; j < sortedIndices.size(); ++j)
+        {
             int compareIdx = sortedIndices[j];
-            if (suppressed[compareIdx]) {
+            if (suppressed[compareIdx]) 
+            {
                 continue;
             }
 
@@ -313,7 +314,8 @@ void YOLOv11ONNX::NMSBoxes(const std::vector<BoundingBox>& boundingBoxes,
             const float interWidth = x2 - x1;
             const float interHeight = y2 - y1;
 
-            if (interWidth <= 0 || interHeight <= 0) {
+            if (interWidth <= 0 || interHeight <= 0) 
+            {
                 continue;
             }
 
@@ -321,10 +323,10 @@ void YOLOv11ONNX::NMSBoxes(const std::vector<BoundingBox>& boundingBoxes,
             const float unionArea = area_current + areas[compareIdx] - intersection;
             const float iou = (unionArea > 0.0f) ? (intersection / unionArea) : 0.0f;
 
-            if (iou > nmsThreshold) {
+            if (iou > nmsThreshold)
+            {
                 suppressed[compareIdx] = true;
             }
         }
     }
-
 }

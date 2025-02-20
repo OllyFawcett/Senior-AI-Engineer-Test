@@ -55,6 +55,7 @@ void VideoPlayer::UpdateFrame()
     {
         m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, detections);
     }
+
     QImage qimg(frame.data, frame.cols, frame.rows, static_cast<uint32_t>(frame.step), QImage::Format_RGB888);
 
     QPixmap pix = QPixmap::fromImage(qimg).scaled(m_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);

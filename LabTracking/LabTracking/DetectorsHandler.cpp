@@ -30,6 +30,10 @@ bool DetectorsHandler::DetectAndCreateDisplayImage(cv::Mat& image, std::map<Dete
 				detections[detector.first] = detector.second->Detect(image, 0.5, 0.5);
 				if (!detections[detector.first].empty())
 				{
+					if (detector.first == DetectorType::BOTTLES)
+					{
+						std::cout << "found bottles" << std::endl;
+					}
 					//Successful read if any models have detected anything
 					success = true;
 				}

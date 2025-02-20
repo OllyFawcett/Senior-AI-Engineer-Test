@@ -112,21 +112,21 @@ QCheckBox::indicator:checked {
           </widget>
          </item>
          <item>
-          <widget class="QCheckBox" name="checkBox">
+          <widget class="QCheckBox" name="displayHands">
            <property name="text">
             <string>Show Hand Detections</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QCheckBox" name="checkBox_2">
+          <widget class="QCheckBox" name="displayPetriDishes">
            <property name="text">
             <string>Show Bottle Detections</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QCheckBox" name="checkBox_3">
+          <widget class="QCheckBox" name="displayBottles">
            <property name="text">
             <string>Show Petri Dish Detections</string>
            </property>
