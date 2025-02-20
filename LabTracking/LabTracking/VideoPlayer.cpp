@@ -50,12 +50,15 @@ void VideoPlayer::UpdateFrame()
     }
 
     cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
-
+    std::vector<YOLOv11ONNX::Detection> detections;
     if (m_spHandDetector)
     {
-        std::vector<float> output = m_spHandDetector->Run(frame);
+        detections = m_spHandDetector->Detect(frame, 0.5, 0.5);
     }
-
+    if (!detections.empty())
+    {
+        std::cout << "hello" << std::endl;
+    }
     QImage qimg(frame.data, frame.cols, frame.rows, static_cast<uint32_t>(frame.step), QImage::Format_RGB888);
 
     QPixmap pix = QPixmap::fromImage(qimg).scaled(m_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);

@@ -12,8 +12,9 @@ int main(int argc, char* argv[])
     w.show();
 
     std::string videoFilePath = "C:/Users/OliverFawcett/Downloads/AICandidateTest-FINAL.mp4";
-    std::filesystem::path modelPath = "C:/Users/OliverFawcett/Downloads/YOLOv11HandDetector.onnx";
-    std::shared_ptr<YOLOv11ONNX> spHandDetector = std::make_shared<YOLOv11ONNX>(modelPath);
+    std::string modelPath = "C:/Users/OliverFawcett/Downloads/best.onnx";
+    std::string labelsPaths = "C:/Users/OliverFawcett/Downloads/labels.txt";
+    std::shared_ptr<YOLOv11ONNX> spHandDetector = std::make_shared<YOLOv11ONNX>(modelPath, false);
     VideoPlayer* player = new VideoPlayer(videoFilePath, w.GetCameraViewLabel(),spHandDetector, &w);
     player->Start();
 

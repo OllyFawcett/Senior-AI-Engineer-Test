@@ -10,16 +10,50 @@
 class YOLOv11ONNX 
 {
 public:
-    YOLOv11ONNX(std::filesystem::path& modelPath);
+    struct BoundingBox 
+    {
+        int x;
+        int y;
+        int width;
+        int height;
+    };
+    struct Detection 
+    {
+        BoundingBox box;
+        float conf{};
+        int classId{};
+    };
 
-    std::vector<float> Run(const cv::Mat& inputImage);
+    YOLOv11ONNX(const std::string& modelPath, const bool useGPU);
+
+    std::vector<Detection> Detect(const cv::Mat& image, float confThreshold, float iouThreshold);
 
 private:
-    Ort::Env m_env;
-    Ort::SessionOptions m_sessionOptions;
-    Ort::Session m_session;
+    cv::Mat Preprocess(const cv::Mat& image, float*& blob, std::vector<int64_t>& inputTensorShape);
+    std::vector<Detection> Postprocess(const cv::Size& originalImageSize, const cv::Size& resizedImageShape,
+        const std::vector<Ort::Value>& outputTensors,
+        float confThreshold, float iouThreshold);
 
-    std::vector<const char*> m_inputNodeNames;
-    std::vector<const char*> m_outputNodeNames;
-    std::vector<int64_t> m_inputNodeDims;
+    void LetterBox(const cv::Mat& image, cv::Mat& outImage, const cv::Size& newShape);
+
+    BoundingBox ScaleCoords(const cv::Size& imageShape, BoundingBox coords,
+        const cv::Size& imageOriginalShape);
+    void NMSBoxes(const std::vector<BoundingBox>& boundingBoxes,
+        const std::vector<float>& scores,
+        float scoreThreshold,
+        float nmsThreshold,
+        std::vector<uint32_t>& indices);
+    Ort::Env m_env;                    
+    Ort::SessionOptions m_sessionOptions;  
+    Ort::Session m_session;               
+    bool m_isDynamicInputShape;                 
+    cv::Size m_inputImageShape;                  
+
+    std::vector<Ort::AllocatedStringPtr> m_inputNodeNameAllocatedStrings;
+    std::vector<const char*> m_inputNames;
+    std::vector<Ort::AllocatedStringPtr> m_outputNodeNameAllocatedStrings;
+    std::vector<const char*> m_outputNames;
+
+    size_t m_numInputNodes;
+    size_t m_numOutputNodes;       
 };
