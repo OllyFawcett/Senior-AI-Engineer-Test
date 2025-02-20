@@ -1,22 +1,17 @@
 #pragma once
 #include "YOLOv11ONNX.h"
 #include <opencv2/opencv.hpp>
+#include "DetectionTypes.h"
 
 class DetectorsHandler
 {
 public:
-	enum class DetectorType
-	{
-		HANDS,
-		PETRI_DISHES,
-		BOTTLES
-	};
 	DetectorsHandler();
-	bool AddDetector(const DetectorType& type, const std::string& modelPath);
-	bool DetectAndCreateDisplayImage(cv::Mat& image, std::map<DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections);
+	bool AddDetector(const DetectionTypes::DetectorType& type, const std::string& modelPath);
+	bool DetectAndCreateDisplayImage(cv::Mat& image, std::map<DetectionTypes::DetectorType, bool>& objectsToDisplay, std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections);
 
 private:
-	bool DrawDetectionsOnImage(cv::Mat& image, std::map<DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections);
-	std::map<DetectorType, std::shared_ptr<YOLOv11ONNX>> m_detectors;
-	std::map<DetectorType, cv::Scalar> m_boxColours;
+	bool DrawDetectionsOnImage(cv::Mat& image, std::map<DetectionTypes::DetectorType, bool>& objectsToDisplay, std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections);
+	std::map<DetectionTypes::DetectorType, std::shared_ptr<YOLOv11ONNX>> m_detectors;
+	std::map<DetectionTypes::DetectorType, cv::Scalar> m_boxColours;
 };

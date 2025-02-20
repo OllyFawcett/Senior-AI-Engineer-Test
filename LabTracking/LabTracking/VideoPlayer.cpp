@@ -3,9 +3,13 @@
 #include <QPixmap>
 #include <QDebug>
 
-VideoPlayer::VideoPlayer(const std::string& videoPath, QLabel* displayLabel, const std::shared_ptr<DetectorsHandler> spDetectorsHandler, QObject* parent)
+VideoPlayer::VideoPlayer(const std::string& videoPath, QLabel* displayLabel, QCheckBox* displayBottles, QCheckBox* displayHands,
+    QCheckBox* displayPetriDishes, const std::shared_ptr<DetectorsHandler> spDetectorsHandler, QObject* parent)
     : QObject(parent)
     , m_label(displayLabel)
+    , m_displayBottles(displayBottles)
+    , m_displayHands(displayHands)
+    , m_displayPetriDishes(displayPetriDishes)
     , m_spDetectorsHandler(spDetectorsHandler)
 {
     m_cap.open(videoPath);
@@ -50,10 +54,14 @@ void VideoPlayer::UpdateFrame()
     }
 
     cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
-    std::map<DetectorsHandler::DetectorType, std::vector<YOLOv11ONNX::Detection>> detections;
+    std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>> detections;
     if (m_spDetectorsHandler)
     {
-        m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, detections);
+        std::map<DetectionTypes::DetectorType, bool> objectsToDisplay;
+        objectsToDisplay[DetectionTypes::DetectorType::HANDS] = m_displayHands->isChecked();
+        objectsToDisplay[DetectionTypes::DetectorType::BOTTLES] = m_displayBottles->isChecked();
+        objectsToDisplay[DetectionTypes::DetectorType::PETRI_DISHES] = m_displayPetriDishes->isChecked();
+        m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, objectsToDisplay, detections);
     }
 
     QImage qimg(frame.data, frame.cols, frame.rows, static_cast<uint32_t>(frame.step), QImage::Format_RGB888);
