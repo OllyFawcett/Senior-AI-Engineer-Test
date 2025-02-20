@@ -15,7 +15,8 @@ YOLOv11ONNX::YOLOv11ONNX(const std::string& modelPath, const bool useGPU)
     auto cudaAvailable = std::find(availableProviders.begin(), availableProviders.end(), "CUDAExecutionProvider");
     OrtCUDAProviderOptions cudaOption;
 
-    if (useGPU && cudaAvailable != availableProviders.end()) {
+    if (useGPU && cudaAvailable != availableProviders.end()) 
+    {
         m_sessionOptions.AppendExecutionProvider_CUDA(cudaOption); 
     }
 
@@ -36,10 +37,12 @@ YOLOv11ONNX::YOLOv11ONNX(const std::string& modelPath, const bool useGPU)
     m_outputNodeNameAllocatedStrings.push_back(std::move(output_name));
     m_outputNames.push_back(m_outputNodeNameAllocatedStrings.back().get());
 
-    if (inputTensorShapeVec.size() >= 4) {
+    if (inputTensorShapeVec.size() >= 4) 
+    {
         m_inputImageShape = cv::Size(static_cast<uint32_t>(inputTensorShapeVec[3]), static_cast<uint32_t>(inputTensorShapeVec[2]));
     }
-    else {
+    else 
+    {
         throw std::runtime_error("Invalid input tensor shape.");
     }
 
@@ -47,176 +50,184 @@ YOLOv11ONNX::YOLOv11ONNX(const std::string& modelPath, const bool useGPU)
     m_numOutputNodes = m_session.GetOutputCount();
 }
 
-std::vector<YOLOv11ONNX::Detection> YOLOv11ONNX::Detect(const cv::Mat& image, float confThreshold, float iouThreshold) {
+std::vector<YOLOv11ONNX::Detection> YOLOv11ONNX::Detect(const cv::Mat& image, float confThreshold, float iouThreshold) 
+{
+    std::vector<YOLOv11ONNX::Detection> detections;
+    if (!image.empty())
+    {
+        float* blobPtr = nullptr;
+        std::vector<int64_t> inputTensorShape = { 1, 3, m_inputImageShape.height, m_inputImageShape.width };
 
-    float* blobPtr = nullptr;
-    std::vector<int64_t> inputTensorShape = { 1, 3, m_inputImageShape.height, m_inputImageShape.width };
+        cv::Mat preprocessedImage;
+        if (Preprocess(image, blobPtr, inputTensorShape, preprocessedImage))
+        {
+            size_t inputTensorSize = std::accumulate(inputTensorShape.begin(), inputTensorShape.end(), 1ull, std::multiplies<size_t>());
+            std::vector<float> inputTensorValues(blobPtr, blobPtr + inputTensorSize);
 
-    cv::Mat preprocessedImage = Preprocess(image, blobPtr, inputTensorShape);
+            delete[] blobPtr;
+            static Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 
-    size_t inputTensorSize = std::accumulate(inputTensorShape.begin(), inputTensorShape.end(), 1ull, std::multiplies<size_t>());
-    std::vector<float> inputTensorValues(blobPtr, blobPtr + inputTensorSize);
+            Ort::Value inputTensor = Ort::Value::CreateTensor<float>(
+                memoryInfo,
+                inputTensorValues.data(),
+                inputTensorSize,
+                inputTensorShape.data(),
+                inputTensorShape.size()
+            );
 
-    delete[] blobPtr;
-    static Ort::MemoryInfo memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+            std::vector<Ort::Value> outputTensors = m_session.Run(
+                Ort::RunOptions{ nullptr },
+                m_inputNames.data(),
+                &inputTensor,
+                m_numInputNodes,
+                m_outputNames.data(),
+                m_numOutputNodes
+            );
 
-    Ort::Value inputTensor = Ort::Value::CreateTensor<float>(
-        memoryInfo,
-        inputTensorValues.data(),
-        inputTensorSize,
-        inputTensorShape.data(),
-        inputTensorShape.size()
-    );
+            cv::Size resizedImageShape(static_cast<int>(inputTensorShape[3]), static_cast<int>(inputTensorShape[2]));
 
-    std::vector<Ort::Value> outputTensors = m_session.Run(
-        Ort::RunOptions{ nullptr },
-        m_inputNames.data(),
-        &inputTensor,
-        m_numInputNodes,
-        m_outputNames.data(),
-        m_numOutputNodes
-    );
-
-    cv::Size resizedImageShape(static_cast<int>(inputTensorShape[3]), static_cast<int>(inputTensorShape[2]));
-
-    std::vector<Detection> detections = Postprocess(image.size(), resizedImageShape, outputTensors, confThreshold, iouThreshold);
-
+            Postprocess(image.size(), resizedImageShape, outputTensors, confThreshold, iouThreshold, detections);
+        }
+    }
     return detections; 
 }
 
-cv::Mat YOLOv11ONNX::Preprocess(const cv::Mat& image, float*& blob, std::vector<int64_t>& inputTensorShape) {
-
-    cv::Mat resizedImage;
-    LetterBox(image, resizedImage, m_inputImageShape);
-
-    inputTensorShape[2] = resizedImage.rows;
-    inputTensorShape[3] = resizedImage.cols;
-
-    resizedImage.convertTo(resizedImage, CV_32FC3, 1 / 255.0f);
-
-    blob = new float[resizedImage.cols * resizedImage.rows * resizedImage.channels()];
-
-    std::vector<cv::Mat> chw(resizedImage.channels());
-    for (uint32_t i = 0; i < resizedImage.channels(); ++i)
-    {
-        chw[i] = cv::Mat(resizedImage.rows, resizedImage.cols, CV_32FC1, blob + i * resizedImage.cols * resizedImage.rows);
-    }
-    cv::split(resizedImage, chw);
-    return resizedImage;
-}
-
-void YOLOv11ONNX::LetterBox(const cv::Mat& image, cv::Mat& outImage, const cv::Size& newShape)
+bool YOLOv11ONNX::Preprocess(const cv::Mat& image, float*& blob, std::vector<int64_t>& inputTensorShape, cv::Mat& resizedImage)
 {
-    float ratio = std::min(static_cast<float>(newShape.height) / image.rows,
-        static_cast<float>(newShape.width) / image.cols);
+    bool success = false;
+    if (!image.empty())
+    {
+        if (FitWithinSize(image, resizedImage, m_inputImageShape))
+        {
+            inputTensorShape[2] = resizedImage.rows;
+            inputTensorShape[3] = resizedImage.cols;
 
-    uint32_t newUnpadW = static_cast<uint32_t>(std::round(image.cols * ratio));
-    uint32_t newUnpadH = static_cast<uint32_t>(std::round(image.rows * ratio));
+            resizedImage.convertTo(resizedImage, CV_32FC3, 1 / 255.0f);
 
-    uint32_t dw = newShape.width - newUnpadW;
-    uint32_t dh = newShape.height - newUnpadH;
+            blob = new float[resizedImage.cols * resizedImage.rows * resizedImage.channels()];
 
-    uint32_t padLeft = dw / 2;
-    uint32_t padRight = dw - padLeft;
-    uint32_t padTop = dh / 2;
-    uint32_t padBottom = dh - padTop;
-
-    cv::resize(image, outImage, cv::Size(newUnpadW, newUnpadH), 0, 0, cv::INTER_LINEAR);
-    cv::copyMakeBorder(outImage, outImage, padTop, padBottom, padLeft, padRight, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
-    return;
+            std::vector<cv::Mat> chw(resizedImage.channels());
+            for (uint32_t i = 0; i < resizedImage.channels(); ++i)
+            {
+                chw[i] = cv::Mat(resizedImage.rows, resizedImage.cols, CV_32FC1, blob + i * resizedImage.cols * resizedImage.rows);
+            }
+            cv::split(resizedImage, chw);
+            success = true;
+        }
+    }
+    return success;
 }
 
-std::vector<YOLOv11ONNX::Detection> YOLOv11ONNX::Postprocess(
-    const cv::Size& originalImageSize,
-    const cv::Size& resizedImageShape,
-    const std::vector<Ort::Value>& outputTensors,
-    float confThreshold,
-    float iouThreshold
-) {
-
-    std::vector<Detection> detections;
-    const float* rawOutput = outputTensors[0].GetTensorData<float>(); 
-    const std::vector<int64_t> outputShape = outputTensors[0].GetTensorTypeAndShapeInfo().GetShape();
-
-    const size_t num_features = outputShape[1];
-    const size_t num_detections = outputShape[2];
-
-    if (num_detections == 0) 
+bool YOLOv11ONNX::FitWithinSize(const cv::Mat& image, cv::Mat& outImage, const cv::Size& newShape)
+{
+    bool success = false;
+    if (!image.empty() and (image.rows != 0) and (image.cols != 0))
     {
-        return detections;
+        float ratio = std::min(static_cast<float>(newShape.height) / image.rows,
+            static_cast<float>(newShape.width) / image.cols);
+
+        uint32_t newUnpadW = static_cast<uint32_t>(std::round(image.cols * ratio));
+        uint32_t newUnpadH = static_cast<uint32_t>(std::round(image.rows * ratio));
+
+        uint32_t dw = newShape.width - newUnpadW;
+        uint32_t dh = newShape.height - newUnpadH;
+
+        uint32_t padLeft = dw / 2;
+        uint32_t padRight = dw - padLeft;
+        uint32_t padTop = dh / 2;
+        uint32_t padBottom = dh - padTop;
+
+        cv::resize(image, outImage, cv::Size(newUnpadW, newUnpadH), 0, 0, cv::INTER_LINEAR);
+        cv::copyMakeBorder(outImage, outImage, padTop, padBottom, padLeft, padRight, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+        success = true;
     }
+    return success;
+}
 
-    const uint32_t numClasses = static_cast<uint32_t>(num_features) - 4;
-    if (numClasses <= 0) 
+bool YOLOv11ONNX::Postprocess(const cv::Size& originalImageSize, const cv::Size& resizedImageShape,
+                              const std::vector<Ort::Value>& outputTensors, float confThreshold, 
+                              float iouThreshold, std::vector<Detection>& detections) 
+{
+    bool success = false;
+    if ((originalImageSize.height > 0) and (originalImageSize.width > 0) and (resizedImageShape.width > 0) and (resizedImageShape.height > 0))
     {
-        return detections;
-    }
+        const float* rawOutput = outputTensors[0].GetTensorData<float>();
+        const std::vector<int64_t> outputShape = outputTensors[0].GetTensorTypeAndShapeInfo().GetShape();
 
-    std::vector<BoundingBox> boxes;
-    boxes.reserve(num_detections);
-    std::vector<float> confs;
-    confs.reserve(num_detections);
-    std::vector<int> classIds;
-    classIds.reserve(num_detections);
-    std::vector<BoundingBox> nms_boxes;
-    nms_boxes.reserve(num_detections);
+        const size_t num_features = outputShape[1];
+        const size_t num_detections = outputShape[2];
 
-    const float* ptr = rawOutput;
-
-    for (size_t d = 0; d < num_detections; ++d) 
-    {
-        float centerX = ptr[0 * num_detections + d];
-        float centerY = ptr[1 * num_detections + d];
-        float width = ptr[2 * num_detections + d];
-        float height = ptr[3 * num_detections + d];
-
-        uint32_t classId = -1;
-        float maxScore = -FLT_MAX;
-        for (uint32_t c = 0; c < numClasses; ++c)
+        if (num_detections > 0)
         {
-            const float score = ptr[d + (4 + c) * num_detections];
-            if (score > maxScore) 
+            const uint32_t numClasses = static_cast<uint32_t>(num_features) - 4;
+            if (numClasses > 0)
             {
-                maxScore = score;
-                classId = c;
+                std::vector<BoundingBox> boxes;
+                boxes.reserve(num_detections);
+                std::vector<float> confs;
+                confs.reserve(num_detections);
+                std::vector<int> classIds;
+                classIds.reserve(num_detections);
+                std::vector<BoundingBox> nms_boxes;
+                nms_boxes.reserve(num_detections);
+
+                const float* ptr = rawOutput;
+
+                for (size_t d = 0; d < num_detections; ++d)
+                {
+                    float centerX = ptr[0 * num_detections + d];
+                    float centerY = ptr[1 * num_detections + d];
+                    float width = ptr[2 * num_detections + d];
+                    float height = ptr[3 * num_detections + d];
+
+                    uint32_t classId = -1;
+                    float maxScore = -FLT_MAX;
+                    for (uint32_t c = 0; c < numClasses; ++c)
+                    {
+                        const float score = ptr[d + (4 + c) * num_detections];
+                        if (score > maxScore)
+                        {
+                            maxScore = score;
+                            classId = c;
+                        }
+                    }
+
+                    if (maxScore > confThreshold)
+                    {
+                        float left = centerX - width / 2.0f;
+                        float top = centerY - height / 2.0f;
+                        BoundingBox unscaledBox = { left, top, width, height };
+                        BoundingBox scaledBox = ScaleCoords(resizedImageShape, unscaledBox, originalImageSize);
+                        BoundingBox roundedBox;
+                        roundedBox.x = std::round(scaledBox.x);
+                        roundedBox.y = std::round(scaledBox.y);
+                        roundedBox.width = std::round(scaledBox.width);
+                        roundedBox.height = std::round(scaledBox.height);
+
+                        BoundingBox nmsBox = roundedBox;
+                        nmsBox.x += classId * 7680;
+                        nmsBox.y += classId * 7680;
+
+                        nms_boxes.push_back(nmsBox);
+                        boxes.push_back(roundedBox);
+                        confs.push_back(maxScore);
+                        classIds.push_back(classId);
+                    }
+                }
+
+                std::vector<uint32_t> indices;
+                NMSBoxes(nms_boxes, confs, confThreshold, iouThreshold, indices);
+
+                detections.reserve(indices.size());
+                for (const uint32_t idx : indices)
+                {
+                    detections.push_back(Detection{boxes[idx],confs[idx],classIds[idx]});
+                }
+                success = true;
             }
         }
-
-        if (maxScore > confThreshold) 
-        {
-            float left = centerX - width / 2.0f;
-            float top = centerY - height / 2.0f;
-            BoundingBox unscaledBox = {left, top, width, height};
-            BoundingBox scaledBox = ScaleCoords(resizedImageShape,unscaledBox,originalImageSize);
-            BoundingBox roundedBox;
-            roundedBox.x = std::round(scaledBox.x);
-            roundedBox.y = std::round(scaledBox.y);
-            roundedBox.width = std::round(scaledBox.width);
-            roundedBox.height = std::round(scaledBox.height);
-
-            BoundingBox nmsBox = roundedBox;
-            nmsBox.x += classId * 7680; 
-            nmsBox.y += classId * 7680;
-
-            nms_boxes.emplace_back(nmsBox);
-            boxes.emplace_back(roundedBox);
-            confs.emplace_back(maxScore);
-            classIds.emplace_back(classId);
-        }
     }
-
-    std::vector<uint32_t> indices;
-    NMSBoxes(nms_boxes, confs, confThreshold, iouThreshold, indices);
-
-    detections.reserve(indices.size());
-    for (const int idx : indices) {
-        detections.emplace_back(Detection{
-            boxes[idx],       // Bounding box
-            confs[idx],       // Confidence score
-            classIds[idx]     // Class ID
-            });
-    }
-    return detections;
+    return success;
 }
 
 YOLOv11ONNX::BoundingBox YOLOv11ONNX::ScaleCoords(const cv::Size& imageShape, BoundingBox coords, const cv::Size& imageOriginalShape) 

@@ -29,20 +29,15 @@ public:
     std::vector<Detection> Detect(const cv::Mat& image, float confThreshold, float iouThreshold);
 
 private:
-    cv::Mat Preprocess(const cv::Mat& image, float*& blob, std::vector<int64_t>& inputTensorShape);
-    std::vector<Detection> Postprocess(const cv::Size& originalImageSize, const cv::Size& resizedImageShape,
-        const std::vector<Ort::Value>& outputTensors,
-        float confThreshold, float iouThreshold);
-
-    void LetterBox(const cv::Mat& image, cv::Mat& outImage, const cv::Size& newShape);
-
+    bool Preprocess(const cv::Mat& image, float*& blob, std::vector<int64_t>& inputTensorShape, cv::Mat& resizedImage);
+    bool Postprocess(const cv::Size& originalImageSize, const cv::Size& resizedImageShape,
+                    const std::vector<Ort::Value>& outputTensors, float confThreshold, float iouThreshold, 
+                    std::vector<Detection>& detections);
+    bool FitWithinSize(const cv::Mat& image, cv::Mat& outImage, const cv::Size& newShape);
     BoundingBox ScaleCoords(const cv::Size& imageShape, BoundingBox coords,
         const cv::Size& imageOriginalShape);
-    void NMSBoxes(const std::vector<BoundingBox>& boundingBoxes,
-        const std::vector<float>& scores,
-        float scoreThreshold,
-        float nmsThreshold,
-        std::vector<uint32_t>& indices);
+    void NMSBoxes(const std::vector<BoundingBox>& boundingBoxes, const std::vector<float>& scores,
+                float scoreThreshold,float nmsThreshold, std::vector<uint32_t>& indices);
     Ort::Env m_env;                    
     Ort::SessionOptions m_sessionOptions;  
     Ort::Session m_session;               
