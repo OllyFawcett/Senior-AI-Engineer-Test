@@ -3,10 +3,10 @@
 #include <QPixmap>
 #include <QDebug>
 
-VideoPlayer::VideoPlayer(const std::string& videoPath, QLabel* displayLabel, const std::shared_ptr<YOLOv11ONNX> spHandDetector, QObject* parent)
+VideoPlayer::VideoPlayer(const std::string& videoPath, QLabel* displayLabel, const std::shared_ptr<DetectorsHandler> spDetectorsHandler, QObject* parent)
     : QObject(parent)
     , m_label(displayLabel)
-    , m_spHandDetector(spHandDetector)
+    , m_spDetectorsHandler(spDetectorsHandler)
 {
     m_cap.open(videoPath);
     if (!m_cap.isOpened()) {
@@ -50,10 +50,10 @@ void VideoPlayer::UpdateFrame()
     }
 
     cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
-    std::vector<YOLOv11ONNX::Detection> detections;
-    if (m_spHandDetector)
+    std::map<DetectorsHandler::DetectorType, std::vector<YOLOv11ONNX::Detection>> detections;
+    if (m_spDetectorsHandler)
     {
-        detections = m_spHandDetector->Detect(frame, 0.5, 0.5);
+        m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, detections);
     }
     if (!detections.empty())
     {

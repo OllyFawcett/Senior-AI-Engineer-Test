@@ -3,6 +3,7 @@
 #include <QtWidgets/QApplication>
 #include <QString>
 #include "YOLOv11ONNX.h"
+#include "DetectorsHandler.h"
 
 int main(int argc, char* argv[])
 {
@@ -14,8 +15,9 @@ int main(int argc, char* argv[])
     std::string videoFilePath = "C:/Users/OliverFawcett/Downloads/AICandidateTest-FINAL.mp4";
     std::string modelPath = "C:/Users/OliverFawcett/Downloads/best.onnx";
     std::string labelsPaths = "C:/Users/OliverFawcett/Downloads/labels.txt";
-    std::shared_ptr<YOLOv11ONNX> spHandDetector = std::make_shared<YOLOv11ONNX>(modelPath, false);
-    VideoPlayer* player = new VideoPlayer(videoFilePath, w.GetCameraViewLabel(),spHandDetector, &w);
+    std::shared_ptr<DetectorsHandler> spDetectorsHandler = std::make_shared<DetectorsHandler>();
+    spDetectorsHandler->AddDetector(DetectorsHandler::DetectorType::HANDS, modelPath);
+    VideoPlayer* player = new VideoPlayer(videoFilePath, w.GetCameraViewLabel(),spDetectorsHandler, &w);
     player->Start();
 
     return a.exec();
