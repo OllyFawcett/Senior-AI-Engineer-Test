@@ -134,8 +134,18 @@ bool VideoPlayer::UpdateCSV(std::map<DetectionTypes::DetectorType, std::vector<Y
 std::string VideoPlayer::GetCurrentDataTimeStr()
 {
     auto now = std::chrono::system_clock::now();
+    auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+    auto value = now_ms.time_since_epoch();
+    long long milliseconds = value.count() % 1000;
+
     std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+
+    struct tm timeinfo;
+    localtime_s(&timeinfo, &now_time);
+
     std::ostringstream oss;
-    oss << std::put_time(std::localtime(&now_time), "%Y-%m-%d %H:%M:%S");
+    oss << std::put_time(&timeinfo, "%Y-%m-%d %H:%M:%S");
+    oss << "." << std::setw(3) << std::setfill('0') << milliseconds;
+
     return oss.str();
 }
