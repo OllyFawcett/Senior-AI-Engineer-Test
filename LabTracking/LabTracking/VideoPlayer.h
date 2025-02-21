@@ -2,6 +2,7 @@
 #include <QTimer>
 #include <opencv2/opencv.hpp>
 #include <memory>
+#include "CSVWriter.h"
 #include "DetectorsHandler.h"
 #include "LabTracking.h"
 
@@ -22,6 +23,7 @@ private slots:
 
 private:
     std::shared_ptr<DetectorsHandler> m_spDetectorsHandler;
+    std::shared_ptr<CSVWriter> m_spCSVWriter;
     cv::VideoCapture m_cap;
     QLabel* m_label;
     QCheckBox* m_displayBottles;

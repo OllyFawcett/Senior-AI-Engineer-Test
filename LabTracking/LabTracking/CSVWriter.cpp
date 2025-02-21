@@ -1,9 +1,7 @@
 #include <algorithm>
 #include <sstream>
-
+#include <fstream>
 #include "CSVWriter.h"
-#include "FileUtils.h"
-#include "Logger.h"
 
 CSVWriter::CSVWriter(const std::string& filename) : m_filename(filename), m_columnHeadersWritten(false)
 {
@@ -19,16 +17,14 @@ CSVWriter::~CSVWriter()
 
 bool CSVWriter::AddColumnHeader(const std::string& columnHeader)
 {
-    Logger::Get() << LoggerLevel::Verbose << __FUNCTION__ << " " << __LINE__ << " "
-        << "Entry" << std::endl;
+    const std::lock_guard lg(m_mutex);
     m_columnHeaders.push_back(columnHeader);
     return true;
 }
 
 bool CSVWriter::AddRowValue(const std::string& columnHeader, const std::string& value)
 {
-    Logger::Get() << LoggerLevel::Verbose << __FUNCTION__ << " " << __LINE__ << " "
-        << "Entry" << std::endl;
+    const std::lock_guard lg(m_mutex);
     bool success = false;
     if (std::find(m_columnHeaders.begin(), m_columnHeaders.end(), columnHeader) != m_columnHeaders.end())
     {
@@ -46,10 +42,9 @@ bool CSVWriter::AddRowValue(const std::string& columnHeader, const std::string& 
 
 bool CSVWriter::WriteRow()
 {
-    Logger::Get() << LoggerLevel::Verbose << __FUNCTION__ << " " << __LINE__ << " "
-        << "Entry" << std::endl;
+    const std::lock_guard lg(m_mutex);
     bool success = false;
-    if (!m_columnHeadersWritten || !FileUtils::FileExists(m_filename))
+    if (!m_columnHeadersWritten || !FileExists(m_filename))
     {
         WriteColumnHeaders();
     }
@@ -67,7 +62,7 @@ bool CSVWriter::WriteRow()
             sstream << ",";
         }
         sstream << std::endl;
-        success = FileUtils::SaveTextData(m_filename, sstream, true);
+        success = SaveTextData(m_filename, sstream, true);
         m_values.clear();
     }
     return success;
@@ -75,8 +70,6 @@ bool CSVWriter::WriteRow()
 
 bool CSVWriter::WriteColumnHeaders()
 {
-    Logger::Get() << LoggerLevel::Verbose << __FUNCTION__ << " " << __LINE__ << " "
-        << "Entry" << std::endl;
     bool success = false;
     if (!m_filename.empty())
     {
@@ -86,8 +79,32 @@ bool CSVWriter::WriteColumnHeaders()
             sstream << columnHeader << ",";
         }
         sstream << std::endl;
-        success = FileUtils::SaveTextData(m_filename, sstream, false);
+        success = SaveTextData(m_filename, sstream, false);
     }
     m_columnHeadersWritten = true;
+    return success;
+}
+
+bool CSVWriter::FileExists(const std::filesystem::path& filename)
+{
+    bool exists = false;
+    std::filesystem::path file(filename);
+    exists = std::filesystem::exists(file);
+    return exists;
+}
+
+bool CSVWriter::SaveTextData(const std::string& filename, const std::stringstream& sstream, const bool append)
+{
+    bool success = false;
+
+    std::ios_base::openmode mode = append ? std::ios::app : std::ios::out;
+    std::ofstream out(filename, mode);
+    if (out)
+    {
+        out << sstream.str();
+        out.close();
+        success = true;
+    }
+
     return success;
 }
