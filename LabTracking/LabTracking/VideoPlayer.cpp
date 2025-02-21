@@ -31,6 +31,7 @@ VideoPlayer::VideoPlayer(const std::string& videoPath, QLabel* displayLabel, QCh
     }
 
     connect(&m_timer, &QTimer::timeout, this, &VideoPlayer::UpdateFrame);
+    InitialiseCSVWriter();
 }
 
 VideoPlayer::~VideoPlayer()
@@ -70,6 +71,10 @@ void VideoPlayer::UpdateFrame()
         objectsToDisplay[DetectionTypes::DetectorType::BOTTLES] = m_displayBottles->isChecked();
         objectsToDisplay[DetectionTypes::DetectorType::PETRI_DISHES] = m_displayPetriDishes->isChecked();
         m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, objectsToDisplay, detections);
+        if (m_spCSVWriter)
+        {
+            UpdateCSV(detections);
+        }
     }
 
     QImage qimg(frame.data, frame.cols, frame.rows, static_cast<uint32_t>(frame.step), QImage::Format_RGB888);
@@ -89,6 +94,39 @@ bool VideoPlayer::InitialiseCSVWriter()
         m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_BOTTLE_DETECTIONS);
         m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS);
         success = true;
+    }
+    return success;
+}
+
+bool VideoPlayer::UpdateCSV(std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections)
+{
+    bool success = false;
+    if (m_spCSVWriter)
+    {
+        uint32_t handDetections = 0;
+        uint32_t bottleDetections = 0;
+        uint32_t petriDishDetections = 0;
+        std::string dateTimeStr = GetCurrentDataTimeStr();
+
+        if (detections.find(DetectionTypes::DetectorType::HANDS) != detections.end())
+        {
+            handDetections = detections[DetectionTypes::DetectorType::HANDS].size();
+        }
+        if (detections.find(DetectionTypes::DetectorType::BOTTLES) != detections.end())
+        {
+            handDetections = detections[DetectionTypes::DetectorType::BOTTLES].size();
+        }
+        if (detections.find(DetectionTypes::DetectorType::PETRI_DISHES) != detections.end())
+        {
+            handDetections = detections[DetectionTypes::DetectorType::PETRI_DISHES].size();
+        }
+
+        m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_TIME, dateTimeStr);
+        m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_NUMBER_OF_HAND_DETECTIONS, std::to_string(handDetections));
+        m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_NUMBER_OF_BOTTLE_DETECTIONS, std::to_string(bottleDetections));
+        m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS, std::to_string(petriDishDetections));
+
+        m_spCSVWriter->WriteRow();
     }
     return success;
 }
