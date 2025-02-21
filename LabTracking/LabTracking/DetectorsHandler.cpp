@@ -9,6 +9,7 @@ DetectorsHandler::DetectorsHandler()
 
 bool DetectorsHandler::AddDetector(const DetectionTypes::DetectorType& type, const std::string& modelPath)
 {
+	const std::lock_guard lg(m_mutex);
 	bool success = false;
 	if (!modelPath.empty())
 	{
@@ -20,6 +21,8 @@ bool DetectorsHandler::AddDetector(const DetectionTypes::DetectorType& type, con
 
 bool DetectorsHandler::DetectAndCreateDisplayImage(cv::Mat& image, std::map<DetectionTypes::DetectorType, bool>& objectsToDisplay, std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections)
 {
+	const std::lock_guard lg(m_mutex);
+
 	bool success = false;
 	if (!image.empty() and !m_detectors.empty())
 	{
