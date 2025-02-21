@@ -1,16 +1,24 @@
 #include "VideoPlayer.h"
 #include <QImage>
 #include <QPixmap>
-#include <QDebug>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+
+const std::string VideoPlayer::CSV_COLUMN_HEADER_TIME = "Time";
+const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_HAND_DETECTIONS = "Hand Detections";
+const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_BOTTLE_DETECTIONS = "Bottle Detections";
+const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS = "Petri Dish Detections";
 
 VideoPlayer::VideoPlayer(const std::string& videoPath, QLabel* displayLabel, QCheckBox* displayBottles, QCheckBox* displayHands,
-    QCheckBox* displayPetriDishes, const std::shared_ptr<DetectorsHandler> spDetectorsHandler, QObject* parent)
+    QCheckBox* displayPetriDishes, const std::shared_ptr<DetectorsHandler> spDetectorsHandler, const std::shared_ptr<CSVWriter> spCSVWriter, QObject* parent)
     : QObject(parent)
     , m_label(displayLabel)
     , m_displayBottles(displayBottles)
     , m_displayHands(displayHands)
     , m_displayPetriDishes(displayPetriDishes)
     , m_spDetectorsHandler(spDetectorsHandler)
+    , m_spCSVWriter(spCSVWriter)
 {
     m_cap.open(videoPath);
     if (!m_cap.isOpened()) {
@@ -69,4 +77,27 @@ void VideoPlayer::UpdateFrame()
     QPixmap pix = QPixmap::fromImage(qimg).scaled(m_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
     m_label->setPixmap(pix);
+}
+
+bool VideoPlayer::InitialiseCSVWriter()
+{
+    bool success = false;
+    if (m_spCSVWriter)
+    {
+        m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_TIME);
+        m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_HAND_DETECTIONS);
+        m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_BOTTLE_DETECTIONS);
+        m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS);
+        success = true;
+    }
+    return success;
+}
+
+std::string VideoPlayer::GetCurrentDataTimeStr()
+{
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    std::ostringstream oss;
+    oss << std::put_time(std::localtime(&now_time), "%Y-%m-%d %H:%M:%S");
+    return oss.str();
 }
