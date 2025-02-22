@@ -10,6 +10,15 @@
 
 int main(int argc, char* argv[])
 {
+    if (argc != 3)
+    {
+        std::cout << "Usage: <Input Directory> <Output Directory>" << std::endl;;
+    }
+    else
+    {
+        std::string inputPath = argv[1];
+        std::string outputPath = argv[2];
+    }
     QApplication a(argc, argv);
     LabTracking w;
     w.show();
@@ -17,7 +26,7 @@ int main(int argc, char* argv[])
     //TODO : consider loading from ini or from arguments when running
     std::string videoFilePath = "C:/Users/OliverFawcett/Downloads/AICandidateTest-FINAL.mp4";
     std::string handDetectorModelPath = "C:/Users/OliverFawcett/Downloads/HandDetector.onnx";
-    std::string petriDishDetectorModelPath = "C:/Users/OliverFawcett/Downloads/PetriDishDetector.onnx";
+    std::string petriDishDetectorModelPath = "C:/Users/OliverFawcett/Downloads/PetriDishDetector2.onnx";
     std::string bottleDetectorModelPath = "C:/Users/OliverFawcett/Downloads/BottleDetector2.onnx";
     std::string outputCSVName = "LabResults.csv";
 

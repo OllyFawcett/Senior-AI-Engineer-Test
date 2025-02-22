@@ -119,14 +119,14 @@ QCheckBox::indicator:checked {
           </widget>
          </item>
          <item>
-          <widget class="QCheckBox" name="displayPetriDishes">
+          <widget class="QCheckBox" name="displayBottles">
            <property name="text">
             <string>Show Bottle Detections</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QCheckBox" name="displayBottles">
+          <widget class="QCheckBox" name="displayPetriDishes">
            <property name="text">
             <string>Show Petri Dish Detections</string>
            </property>

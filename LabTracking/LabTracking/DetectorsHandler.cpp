@@ -5,6 +5,12 @@ DetectorsHandler::DetectorsHandler()
 	m_boxColours[DetectionTypes::DetectorType::HANDS] = cv::Scalar(255, 0, 0);
 	m_boxColours[DetectionTypes::DetectorType::PETRI_DISHES] = cv::Scalar(0, 255, 0);
 	m_boxColours[DetectionTypes::DetectorType::BOTTLES] = cv::Scalar(0, 0, 255);
+	m_detectorThresholds[DetectionTypes::DetectorType::HANDS] = std::make_pair<float, float>(0.4, 0.4);
+	m_detectorThresholds[DetectionTypes::DetectorType::BOTTLES] = std::make_pair<float, float>(0.1, 0.7);
+	m_detectorThresholds[DetectionTypes::DetectorType::PETRI_DISHES] = std::make_pair<float, float>(0.1, 0.5);
+	m_detectorLabels[DetectionTypes::DetectorType::HANDS] = { {0, "Right Hand"}, {1, "Right Hand"}, {2, "Left Hand"}, {3, "Left Hand"} };
+	m_detectorLabels[DetectionTypes::DetectorType::BOTTLES] = { {0, "Bottle"}};
+	m_detectorLabels[DetectionTypes::DetectorType::PETRI_DISHES] = { {0, "Petri Dish"}};
 }
 
 bool DetectorsHandler::AddDetector(const DetectionTypes::DetectorType& type, const std::string& modelPath)
@@ -30,7 +36,7 @@ bool DetectorsHandler::DetectAndCreateDisplayImage(cv::Mat& image, std::map<Dete
 		{
 			if (detector.second)
 			{
-				detections[detector.first] = detector.second->Detect(image, 0.2, 0.6);
+				detections[detector.first] = detector.second->Detect(image, m_detectorThresholds[detector.first].first, m_detectorThresholds[detector.first].second);
 				if (!detections[detector.first].empty())
 				{
 					//Successful read if any models have detected anything
@@ -62,6 +68,7 @@ bool DetectorsHandler::DrawDetectionsOnImage(cv::Mat& image, std::map<DetectionT
 						cv::rectangle(image, cv::Point(detection.box.x, detection.box.y),
 							cv::Point(detection.box.x + detection.box.width, detection.box.y + detection.box.height),
 							m_boxColours[detections.first], 2, cv::LINE_AA);
+						cv::putText(image, m_detectorLabels[detections.first][detection.classId] + ": " + std::to_string(detection.conf), cv::Point(detection.box.x, detection.box.y + 40), 0, 1, m_boxColours[detections.first], 2);
 					}
 				}
 			}

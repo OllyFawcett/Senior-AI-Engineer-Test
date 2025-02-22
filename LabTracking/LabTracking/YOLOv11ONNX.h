@@ -36,7 +36,7 @@ private:
     bool FitWithinSize(const cv::Mat& image, cv::Mat& outImage, const cv::Size& newShape);
     BoundingBox ScaleCoords(const cv::Size& imageShape, BoundingBox coords,
         const cv::Size& imageOriginalShape);
-    void NMSBoxes(const std::vector<BoundingBox>& boundingBoxes, const std::vector<float>& scores,
+    bool NMSBoxes(const std::vector<BoundingBox>& boundingBoxes, const std::vector<float>& scores,
                 float scoreThreshold,float nmsThreshold, std::vector<uint32_t>& indices);
     Ort::Env m_env;                    
     Ort::SessionOptions m_sessionOptions;  

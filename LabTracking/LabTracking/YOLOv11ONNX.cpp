@@ -216,7 +216,10 @@ bool YOLOv11ONNX::Postprocess(const cv::Size& originalImageSize, const cv::Size&
                 detections.reserve(indices.size());
                 for (const uint32_t idx : indices)
                 {
-                    detections.push_back(Detection{boxes[idx],confs[idx],classIds[idx]});
+                    if ((boxes[idx].height * boxes[idx].width) < 100000)
+                    {
+                        detections.push_back(Detection{ boxes[idx],confs[idx],classIds[idx] });
+                    }
                 }
                 success = true;
             }
@@ -242,91 +245,90 @@ YOLOv11ONNX::BoundingBox YOLOv11ONNX::ScaleCoords(const cv::Size& imageShape, Bo
     return result;
 }
 
-void YOLOv11ONNX::NMSBoxes(const std::vector<BoundingBox>& boundingBoxes, const std::vector<float>& scores, float scoreThreshold,
+bool YOLOv11ONNX::NMSBoxes(const std::vector<BoundingBox>& boundingBoxes, const std::vector<float>& scores, float scoreThreshold,
                             float nmsThreshold, std::vector<uint32_t>& indices)
 {
-    indices.clear();
-
-    const size_t numBoxes = boundingBoxes.size();
-    if (numBoxes == 0) 
+    bool success = false;
+    if (!boundingBoxes.empty())
     {
-        return;
-    }
-    std::vector<int> sortedIndices;
-    sortedIndices.reserve(numBoxes);
-    for (size_t i = 0; i < numBoxes; ++i) 
-    {
-        if (scores[i] >= scoreThreshold) 
+        indices.clear();
+        const size_t numBoxes = boundingBoxes.size();
+        std::vector<int> sortedIndices;
+        sortedIndices.reserve(numBoxes);
+        for (size_t i = 0; i < numBoxes; ++i)
         {
-            sortedIndices.push_back(static_cast<int>(i));
-        }
-    }
-
-    if (sortedIndices.empty()) 
-    {
-        return;
-    }
-
-    std::sort(sortedIndices.begin(), sortedIndices.end(),
-        [&scores](int idx1, int idx2) {
-            return scores[idx1] > scores[idx2];
-        });
-
-    std::vector<float> areas(numBoxes, 0.0f);
-    for (size_t i = 0; i < numBoxes; ++i) 
-    {
-        areas[i] = boundingBoxes[i].width * boundingBoxes[i].height;
-    }
-
-    std::vector<bool> suppressed(numBoxes, false);
-
-    for (size_t i = 0; i < sortedIndices.size(); ++i) 
-    {
-        int currentIdx = sortedIndices[i];
-        if (suppressed[currentIdx])
-        {
-            continue;
-        }
-
-        indices.push_back(currentIdx);
-
-        const BoundingBox& currentBox = boundingBoxes[currentIdx];
-        const float x1_max = currentBox.x;
-        const float y1_max = currentBox.y;
-        const float x2_max = currentBox.x + currentBox.width;
-        const float y2_max = currentBox.y + currentBox.height;
-        const float area_current = areas[currentIdx];
-
-        for (size_t j = i + 1; j < sortedIndices.size(); ++j)
-        {
-            int compareIdx = sortedIndices[j];
-            if (suppressed[compareIdx]) 
+            if (scores[i] >= scoreThreshold)
             {
-                continue;
-            }
-
-            const BoundingBox& compareBox = boundingBoxes[compareIdx];
-            const float x1 = std::max(x1_max, static_cast<float>(compareBox.x));
-            const float y1 = std::max(y1_max, static_cast<float>(compareBox.y));
-            const float x2 = std::min(x2_max, static_cast<float>(compareBox.x + compareBox.width));
-            const float y2 = std::min(y2_max, static_cast<float>(compareBox.y + compareBox.height));
-
-            const float interWidth = x2 - x1;
-            const float interHeight = y2 - y1;
-
-            if (interWidth <= 0 || interHeight <= 0) 
-            {
-                continue;
-            }
-
-            const float intersection = interWidth * interHeight;
-            const float unionArea = area_current + areas[compareIdx] - intersection;
-            const float iou = (unionArea > 0.0f) ? (intersection / unionArea) : 0.0f;
-
-            if (iou > nmsThreshold)
-            {
-                suppressed[compareIdx] = true;
+                sortedIndices.push_back(static_cast<int>(i));
             }
         }
+
+        if (!sortedIndices.empty())
+        {
+            std::sort(sortedIndices.begin(), sortedIndices.end(),
+                [&scores](int idx1, int idx2) {
+                    return scores[idx1] > scores[idx2];
+                });
+
+            std::vector<float> areas;
+            for (size_t i = 0; i < numBoxes; ++i)
+            {
+                areas.push_back(boundingBoxes[i].width * boundingBoxes[i].height);
+            }
+
+            std::vector<bool> suppressed(numBoxes, false);
+
+            for (size_t i = 0; i < sortedIndices.size(); ++i)
+            {
+                int currentIdx = sortedIndices[i];
+                if (suppressed[currentIdx])
+                {
+                    continue;
+                }
+
+                indices.push_back(currentIdx);
+
+                const BoundingBox& currentBox = boundingBoxes[currentIdx];
+                const float x1_max = currentBox.x;
+                const float y1_max = currentBox.y;
+                const float x2_max = currentBox.x + currentBox.width;
+                const float y2_max = currentBox.y + currentBox.height;
+                const float area_current = areas[currentIdx];
+
+                for (size_t j = i + 1; j < sortedIndices.size(); ++j)
+                {
+                    int compareIdx = sortedIndices[j];
+                    if (suppressed[compareIdx])
+                    {
+                        continue;
+                    }
+
+                    const BoundingBox& compareBox = boundingBoxes[compareIdx];
+                    const float x1 = std::max(x1_max, static_cast<float>(compareBox.x));
+                    const float y1 = std::max(y1_max, static_cast<float>(compareBox.y));
+                    const float x2 = std::min(x2_max, static_cast<float>(compareBox.x + compareBox.width));
+                    const float y2 = std::min(y2_max, static_cast<float>(compareBox.y + compareBox.height));
+
+                    const float interWidth = x2 - x1;
+                    const float interHeight = y2 - y1;
+
+                    if (interWidth <= 0 || interHeight <= 0)
+                    {
+                        continue;
+                    }
+
+                    const float intersection = interWidth * interHeight;
+                    const float unionArea = area_current + areas[compareIdx] - intersection;
+                    const float iou = (unionArea > 0.0f) ? (intersection / unionArea) : 0.0f;
+
+                    if (iou > nmsThreshold)
+                    {
+                        suppressed[compareIdx] = true;
+                    }
+                }
+            }
+            success = true;
+        }
     }
+    return success;
 }
