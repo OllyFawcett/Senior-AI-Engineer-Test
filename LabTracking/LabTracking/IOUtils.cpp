@@ -23,6 +23,12 @@ bool IOUtils::LoadInputPaths(const std::string& inputPath, InputPaths& inputPath
 bool IOUtils::LoadOutputPaths(const std::string& outputPath, OutputPaths& outputPaths)
 {
     bool success = false;
+    if (CreateDirectoryRecursively(outputPath))
+    {
+        outputPaths.csvPath = outputPath + CSV_RELATIVE_PATH;
+        success = true;
+    }
+    return success;
 }
 
 bool IOUtils::FileExists(const std::filesystem::path& filename)
@@ -31,4 +37,28 @@ bool IOUtils::FileExists(const std::filesystem::path& filename)
     std::filesystem::path file(filename);
     exists = std::filesystem::exists(file);
     return exists;
+}
+
+bool IOUtils::CreateDirectoryRecursively(const std::filesystem::path& directoryName)
+{
+    bool success = false;
+
+    if (!directoryName.empty())
+    {
+        if(std::filesystem::is_directory(directoryName) and 
+            std::filesystem::exists(directoryName))
+        {
+            std::filesystem::path dir(directoryName);
+            std::error_code errorCode;
+            if (std::filesystem::create_directories(dir, errorCode))
+            {
+                success = true;
+            }
+        }
+        else
+        {
+            success = true;
+        }
+    }
+    return success;
 }

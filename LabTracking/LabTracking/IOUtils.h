@@ -20,6 +20,8 @@ public:
 	static bool LoadInputPaths(const std::string& inputFolder, InputPaths& inputPaths);
 	static bool LoadOutputPaths(const std::string& outputFolder, OutputPaths& outputPaths);
 	static bool FileExists(const std::filesystem::path& filename);
+	static bool CreateDirectoryRecursively(const std::filesystem::path& directoryName);
+
 
 
 private:
