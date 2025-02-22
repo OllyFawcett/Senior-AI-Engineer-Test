@@ -10,6 +10,7 @@ public:
 		std::string handDetectorPath;
 		std::string bottleDetectorPath;
 		std::string petriDishDetectorPath;
+		std::string videoPath;
 	};
 	//Currently not really worth having a struct for one thing but left in so I can potentially add more output paths
 	struct OutputPaths
@@ -25,6 +26,7 @@ public:
 
 
 private:
+	static const std::string VIDEO_RELATIVE_PATH;
 	static const std::string HAND_DETECTOR_RELATIVE_PATH;
 	static const std::string BOTTLE_DETECTOR_RELATIVE_PATH;
 	static const std::string PETRI_DISH_DETECTOR_RELATIVE_PATH;
