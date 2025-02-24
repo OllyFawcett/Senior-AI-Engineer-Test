@@ -28,20 +28,19 @@ int main(int argc, char* argv[])
             LabTracking w;
             w.show();
 
-            const std::map<DetectionTypes::DetectorType, bool> objectsToTrack = { {DetectionTypes::DetectorType::BOTTLES, true},
-                                                                                  {DetectionTypes::DetectorType::PETRI_DISHES, true},
-                                                                                  {DetectionTypes::DetectorType::HANDS, false} };
+            const std::map<DetectionTypes::DetectionType, bool> objectsToTrack = { {DetectionTypes::DetectionType::BOTTLES, true},
+                                                                                  {DetectionTypes::DetectionType::PETRI_DISHES, true},
+                                                                                  {DetectionTypes::DetectionType::HANDS, false} };
             const float maxDistanceForMatch = 30;
 
             std::shared_ptr<CSVWriter> spCSVWriter = std::make_shared<CSVWriter>(outputPaths.csvPath);
             std::shared_ptr<DetectorsHandler> spDetectorsHandler = std::make_shared<DetectorsHandler>();
             std::shared_ptr<ObjectTracker> spObjectTracker = std::make_shared<ObjectTracker>(objectsToTrack, maxDistanceForMatch);
             spDetectorsHandler->AddDetector(DetectionTypes::DetectorType::HANDS, inputPaths.handDetectorPath);
-            spDetectorsHandler->AddDetector(DetectionTypes::DetectorType::PETRI_DISHES, inputPaths.petriDishDetectorPath);
-            spDetectorsHandler->AddDetector(DetectionTypes::DetectorType::BOTTLES, inputPaths.bottleDetectorPath);
-            VideoPlayer* player = new VideoPlayer(inputPaths.videoPath, w.GetCameraViewLabel(), w.GetBottleCountLabel(), w.GetPetriDishCountLabel(),  w.GetCheckBox(DetectionTypes::DetectorType::BOTTLES),
-                w.GetCheckBox(DetectionTypes::DetectorType::HANDS),
-                w.GetCheckBox(DetectionTypes::DetectorType::PETRI_DISHES), spDetectorsHandler, spCSVWriter, spObjectTracker, &w);
+            spDetectorsHandler->AddDetector(DetectionTypes::DetectorType::PETRI_DISHES_AND_BOTTLES, inputPaths.petriDishAndBottleDetectorPath);
+            VideoPlayer* player = new VideoPlayer(inputPaths.videoPath, w.GetCameraViewLabel(), w.GetBottleCountLabel(), w.GetPetriDishCountLabel(),  w.GetCheckBox(DetectionTypes::DetectionType::BOTTLES),
+                w.GetCheckBox(DetectionTypes::DetectionType::HANDS),
+                w.GetCheckBox(DetectionTypes::DetectionType::PETRI_DISHES), spDetectorsHandler, spCSVWriter, spObjectTracker, &w);
             player->Start();
 
             return a.exec();

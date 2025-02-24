@@ -69,25 +69,23 @@ void VideoPlayer::UpdateFrame()
     if (!frame.empty())
     {
         cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
-        std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>> detections;
+        std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>> detections;
         if (m_spDetectorsHandler)
         {
-            std::map<DetectionTypes::DetectorType, bool> objectsToDisplay;
-            objectsToDisplay[DetectionTypes::DetectorType::HANDS] = m_displayHands->isChecked();
-            objectsToDisplay[DetectionTypes::DetectorType::BOTTLES] = m_displayBottles->isChecked();
-            objectsToDisplay[DetectionTypes::DetectorType::PETRI_DISHES] = m_displayPetriDishes->isChecked();
-            std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>> filteredDetections;
-            m_spDetectorsHandler->FilterDetections(detections, filteredDetections);
-            m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, objectsToDisplay, filteredDetections);
+            std::map<DetectionTypes::DetectionType, bool> objectsToDisplay;
+            objectsToDisplay[DetectionTypes::DetectionType::HANDS] = m_displayHands->isChecked();
+            objectsToDisplay[DetectionTypes::DetectionType::BOTTLES] = m_displayBottles->isChecked();
+            objectsToDisplay[DetectionTypes::DetectionType::PETRI_DISHES] = m_displayPetriDishes->isChecked();
+            m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, objectsToDisplay, detections);
             if (m_spCSVWriter)
             {
                 UpdateCSV(detections);
             }
             if (m_spObjectTracker)
             {
-                m_spObjectTracker->AddNewDetections(filteredDetections);
-                uint32_t bottleCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectorType::BOTTLES);
-                uint32_t petriDishCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectorType::PETRI_DISHES);
+                m_spObjectTracker->AddNewDetections(detections);
+                uint32_t bottleCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectionType::BOTTLES);
+                uint32_t petriDishCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectionType::PETRI_DISHES);
                 std::string bottleCountStr = "Bottles: " + std::to_string(bottleCount);
                 std::string petriDishCountStr = "Petri Dishes: " + std::to_string(petriDishCount);
                 if (m_bottleCountLabel)
@@ -122,7 +120,7 @@ bool VideoPlayer::InitialiseCSVWriter()
     return success;
 }
 
-bool VideoPlayer::UpdateCSV(std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections)
+bool VideoPlayer::UpdateCSV(std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections)
 {
     bool success = false;
     if (m_spCSVWriter)
@@ -132,17 +130,17 @@ bool VideoPlayer::UpdateCSV(std::map<DetectionTypes::DetectorType, std::vector<Y
         uint32_t petriDishDetections = 0;
         std::string dateTimeStr = GetCurrentDataTimeStr();
 
-        if (detections.find(DetectionTypes::DetectorType::HANDS) != detections.end())
+        if (detections.find(DetectionTypes::DetectionType::HANDS) != detections.end())
         {
-            handDetections = detections[DetectionTypes::DetectorType::HANDS].size();
+            handDetections = detections[DetectionTypes::DetectionType::HANDS].size();
         }
-        if (detections.find(DetectionTypes::DetectorType::BOTTLES) != detections.end())
+        if (detections.find(DetectionTypes::DetectionType::BOTTLES) != detections.end())
         {
-            handDetections = detections[DetectionTypes::DetectorType::BOTTLES].size();
+            handDetections = detections[DetectionTypes::DetectionType::BOTTLES].size();
         }
-        if (detections.find(DetectionTypes::DetectorType::PETRI_DISHES) != detections.end())
+        if (detections.find(DetectionTypes::DetectionType::PETRI_DISHES) != detections.end())
         {
-            handDetections = detections[DetectionTypes::DetectorType::PETRI_DISHES].size();
+            handDetections = detections[DetectionTypes::DetectionType::PETRI_DISHES].size();
         }
 
         m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_TIME, dateTimeStr);

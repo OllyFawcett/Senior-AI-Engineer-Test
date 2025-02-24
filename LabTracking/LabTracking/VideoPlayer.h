@@ -29,7 +29,7 @@ private:
     static const std::string CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS;
 
     bool InitialiseCSVWriter();
-    bool UpdateCSV(std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections);
+    bool UpdateCSV(std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections);
     std::string GetCurrentDataTimeStr();
     std::shared_ptr<DetectorsHandler> m_spDetectorsHandler;
     std::shared_ptr<CSVWriter> m_spCSVWriter;

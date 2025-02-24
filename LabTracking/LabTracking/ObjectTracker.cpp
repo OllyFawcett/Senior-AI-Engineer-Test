@@ -1,17 +1,17 @@
 #include "ObjectTracker.h"
 
-ObjectTracker::ObjectTracker(const std::map<DetectionTypes::DetectorType, bool>& objectsToTrack, const float maxDistanceForMatch)
+ObjectTracker::ObjectTracker(const std::map<DetectionTypes::DetectionType, bool>& objectsToTrack, const float maxDistanceForMatch)
 	: m_objectsToTrack(objectsToTrack)
 	, m_maxDistanceForMatch(maxDistanceForMatch)
 {
 }
 
-bool ObjectTracker::AddNewDetections(std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections)
+bool ObjectTracker::AddNewDetections(std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections)
 {
 	bool success = false;
 	if (!detections.empty())
 	{
-		for (std::pair<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>> detectorAndDetection : detections)
+		for (std::pair<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>> detectorAndDetection : detections)
 		{
 			for (YOLOv11ONNX::Detection& detection : detectorAndDetection.second)
 			{
@@ -74,14 +74,14 @@ bool ObjectTracker::AddNewDetections(std::map<DetectionTypes::DetectorType, std:
 	return success;
 }
 
-uint32_t ObjectTracker::GetUniqueDetectionCount(const DetectionTypes::DetectorType detectorType)
+uint32_t ObjectTracker::GetUniqueDetectionCount(const DetectionTypes::DetectionType DetectionType)
 {
-	return m_uniqueDetectionCentroids[detectorType].size();
+	return m_uniqueDetectionCentroids[DetectionType].size();
 }
 
-uint32_t ObjectTracker::GetUnMatchedDetectionCount(const DetectionTypes::DetectorType detectorType)
+uint32_t ObjectTracker::GetUnMatchedDetectionCount(const DetectionTypes::DetectionType DetectionType)
 {
-	return m_unMatchedDetectionCentroids[detectorType].size();
+	return m_unMatchedDetectionCentroids[DetectionType].size();
 }
 
 cv::Point2f ObjectTracker::GenerateCentroid(const YOLOv11ONNX::Detection& detection)

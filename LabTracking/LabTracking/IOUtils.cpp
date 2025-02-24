@@ -1,8 +1,7 @@
 #include "IOUtils.h"
 
 const std::string IOUtils::HAND_DETECTOR_RELATIVE_PATH = "/HandDetector.onnx";
-const std::string IOUtils::BOTTLE_DETECTOR_RELATIVE_PATH = "/BottleDetector.onnx";
-const std::string IOUtils::PETRI_DISH_DETECTOR_RELATIVE_PATH = "/PetriDishDetector.onnx";
+const std::string IOUtils::PETRI_DISH_AND_BOTTLE_DETECTOR_RELATIVE_PATH = "/PetriDishAndBottleDetector.onnx";
 const std::string IOUtils::VIDEO_RELATIVE_PATH = "/AICandidateTest-FINAL.mp4";
 const std::string IOUtils::CSV_RELATIVE_PATH = "/LabResults.csv";
 
@@ -10,12 +9,10 @@ bool IOUtils::LoadInputPaths(const std::string& inputPath, InputPaths& inputPath
 {
     bool success = false;
 	inputPaths.handDetectorPath = inputPath + HAND_DETECTOR_RELATIVE_PATH;
-	inputPaths.bottleDetectorPath = inputPath + BOTTLE_DETECTOR_RELATIVE_PATH;
-	inputPaths.petriDishDetectorPath = inputPath + PETRI_DISH_DETECTOR_RELATIVE_PATH;
+	inputPaths.petriDishAndBottleDetectorPath = inputPath + PETRI_DISH_AND_BOTTLE_DETECTOR_RELATIVE_PATH;
     inputPaths.videoPath = inputPath + VIDEO_RELATIVE_PATH;
     if (FileExists(inputPaths.handDetectorPath) and 
-        FileExists(inputPaths.bottleDetectorPath) and 
-        FileExists(inputPaths.petriDishDetectorPath) and 
+        FileExists(inputPaths.petriDishAndBottleDetectorPath) and 
         FileExists(inputPaths.videoPath))
     {
         success = true;

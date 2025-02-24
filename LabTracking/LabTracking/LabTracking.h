@@ -15,7 +15,7 @@ public:
     QLabel* GetCameraViewLabel() const;
     QLabel* GetBottleCountLabel() const;
     QLabel* GetPetriDishCountLabel() const;
-    QCheckBox* GetCheckBox(const DetectionTypes::DetectorType detectionType) const;
+    QCheckBox* GetCheckBox(const DetectionTypes::DetectionType detectionType) const;
 
 private:
     Ui::LabTrackingClass ui;

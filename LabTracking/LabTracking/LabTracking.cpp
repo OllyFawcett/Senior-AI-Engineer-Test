@@ -25,18 +25,18 @@ QLabel* LabTracking::GetPetriDishCountLabel() const
     return ui.UniquePetriDishes;
 }
 
-QCheckBox* LabTracking::GetCheckBox(const DetectionTypes::DetectorType detectionType) const
+QCheckBox* LabTracking::GetCheckBox(const DetectionTypes::DetectionType detectionType) const
 {
     QCheckBox* selectedCheckBox = nullptr;
     switch (detectionType)
     {
-    case(DetectionTypes::DetectorType::HANDS):
+    case(DetectionTypes::DetectionType::HANDS):
         selectedCheckBox = ui.displayHands;
         break;
-    case(DetectionTypes::DetectorType::PETRI_DISHES):
+    case(DetectionTypes::DetectionType::PETRI_DISHES):
         selectedCheckBox = ui.displayPetriDishes;
         break;
-    case(DetectionTypes::DetectorType::BOTTLES):
+    case(DetectionTypes::DetectionType::BOTTLES):
         selectedCheckBox = ui.displayBottles;
         break;
     }
