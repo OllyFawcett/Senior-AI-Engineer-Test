@@ -76,14 +76,16 @@ void VideoPlayer::UpdateFrame()
             objectsToDisplay[DetectionTypes::DetectorType::HANDS] = m_displayHands->isChecked();
             objectsToDisplay[DetectionTypes::DetectorType::BOTTLES] = m_displayBottles->isChecked();
             objectsToDisplay[DetectionTypes::DetectorType::PETRI_DISHES] = m_displayPetriDishes->isChecked();
-            m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, objectsToDisplay, detections);
+            std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>> filteredDetections;
+            m_spDetectorsHandler->FilterDetections(detections, filteredDetections);
+            m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, objectsToDisplay, filteredDetections);
             if (m_spCSVWriter)
             {
                 UpdateCSV(detections);
             }
             if (m_spObjectTracker)
             {
-                m_spObjectTracker->AddNewDetections(detections);
+                m_spObjectTracker->AddNewDetections(filteredDetections);
                 uint32_t bottleCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectorType::BOTTLES);
                 uint32_t petriDishCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectorType::PETRI_DISHES);
                 std::string bottleCountStr = "Bottles: " + std::to_string(bottleCount);

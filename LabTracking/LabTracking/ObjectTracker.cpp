@@ -41,7 +41,7 @@ bool ObjectTracker::AddNewDetections(std::map<DetectionTypes::DetectorType, std:
 						}
 					}
 				}
-				else if (!addedDetection)
+				if (!addedDetection)
 				{
 					bool foundMatch = false;
 					for (auto it = m_unMatchedDetectionCentroids[detectorAndDetection.first].begin();

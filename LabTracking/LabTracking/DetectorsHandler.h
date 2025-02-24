@@ -9,7 +9,10 @@ class DetectorsHandler
 public:
 	DetectorsHandler();
 	bool AddDetector(const DetectionTypes::DetectorType& type, const std::string& modelPath);
-	bool DetectAndCreateDisplayImage(cv::Mat& image, std::map<DetectionTypes::DetectorType, bool>& objectsToDisplay, std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections);
+	bool DetectAndCreateDisplayImage(cv::Mat& image, std::map<DetectionTypes::DetectorType, bool>& objectsToDisplay, 
+									std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections);
+	bool FilterDetections(const std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections, 
+						 std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& filteredDetections);
 
 private:
 	bool DrawDetectionsOnImage(cv::Mat& image, std::map<DetectionTypes::DetectorType, bool>& objectsToDisplay, std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections);

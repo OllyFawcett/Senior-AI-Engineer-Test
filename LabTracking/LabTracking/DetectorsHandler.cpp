@@ -52,6 +52,68 @@ bool DetectorsHandler::DetectAndCreateDisplayImage(cv::Mat& image, std::map<Dete
 	return success;
 }
 
+bool DetectorsHandler::FilterDetections(const std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections,
+	std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& filteredDetections)
+{
+	bool success = false;
+	if (!detections.empty())
+	{
+		filteredDetections = detections;
+
+		auto petriIt = filteredDetections.find(DetectionTypes::DetectorType::PETRI_DISHES);
+		auto bottleIt = filteredDetections.find(DetectionTypes::DetectorType::BOTTLES);
+
+		if (petriIt != filteredDetections.end() && bottleIt != filteredDetections.end())
+		{
+			auto boxesOverlap = [](const YOLOv11ONNX::Detection& d1, const YOLOv11ONNX::Detection& d2) -> bool {
+				const auto& a = d1.box;
+				const auto& b = d2.box;
+				return (a.x < b.x + b.width &&
+					a.x + a.width > b.x &&
+					a.y < b.y + b.height &&
+					a.y + a.height > b.y);
+				};
+
+			std::vector<bool> removePetri(petriIt->second.size(), false);
+			std::vector<bool> removeBottle(bottleIt->second.size(), false);
+
+			for (size_t i = 0; i < petriIt->second.size(); ++i)
+			{
+				for (size_t j = 0; j < bottleIt->second.size(); ++j)
+				{
+					if (boxesOverlap(petriIt->second[i], bottleIt->second[j]))
+					{
+						if (petriIt->second[i].conf < bottleIt->second[j].conf)
+							removePetri[i] = true;
+						else
+							removeBottle[j] = true;
+					}
+				}
+			}
+
+			std::vector<YOLOv11ONNX::Detection> filteredPetri;
+			for (size_t i = 0; i < petriIt->second.size(); ++i)
+			{
+				if (!removePetri[i])
+					filteredPetri.push_back(petriIt->second[i]);
+			}
+			std::vector<YOLOv11ONNX::Detection> filteredBottle;
+			for (size_t j = 0; j < bottleIt->second.size(); ++j)
+			{
+				if (!removeBottle[j])
+					filteredBottle.push_back(bottleIt->second[j]);
+			}
+
+			petriIt->second = filteredPetri;
+			bottleIt->second = filteredBottle;
+		}
+
+		success = true;
+	}
+	return success;
+}
+
+
 bool DetectorsHandler::DrawDetectionsOnImage(cv::Mat& image, std::map<DetectionTypes::DetectorType, bool>& objectsToDisplay, std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>>& detections)
 {
 	bool success = true;
