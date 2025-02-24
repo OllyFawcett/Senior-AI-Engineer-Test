@@ -37,11 +37,13 @@ bool ObjectTracker::AddNewDetections(std::map<DetectionTypes::DetectorType, std:
 							it->x = centroid.x;
 							it->y = centroid.y;
 							addedDetection = true;
+							break;
 						}
 					}
 				}
 				else if (!addedDetection)
 				{
+					bool foundMatch = false;
 					for (auto it = m_unMatchedDetectionCentroids[detectorAndDetection.first].begin();
 						it != m_unMatchedDetectionCentroids[detectorAndDetection.first].end();)
 					{
@@ -53,12 +55,17 @@ bool ObjectTracker::AddNewDetections(std::map<DetectionTypes::DetectorType, std:
 						{
 							m_uniqueDetectionCentroids[detectorAndDetection.first].push_back(centroid);
 							it = m_unMatchedDetectionCentroids[detectorAndDetection.first].erase(it);
+							foundMatch = true;
+							break;
 						}
 						else
 						{
-							m_unMatchedDetectionCentroids[detectorAndDetection.first].push_back(centroid);
 							++it;
 						}
+					}
+					if (!foundMatch)
+					{
+						m_unMatchedDetectionCentroids[detectorAndDetection.first].push_back(centroid);
 					}
 				}
 			}

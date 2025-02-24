@@ -66,36 +66,44 @@ void VideoPlayer::UpdateFrame()
         Stop();
         return;
     }
-
-    cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
-    std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>> detections;
-    if (m_spDetectorsHandler)
+    if (!frame.empty())
     {
-        std::map<DetectionTypes::DetectorType, bool> objectsToDisplay;
-        objectsToDisplay[DetectionTypes::DetectorType::HANDS] = m_displayHands->isChecked();
-        objectsToDisplay[DetectionTypes::DetectorType::BOTTLES] = m_displayBottles->isChecked();
-        objectsToDisplay[DetectionTypes::DetectorType::PETRI_DISHES] = m_displayPetriDishes->isChecked();
-        m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, objectsToDisplay, detections);
-        if (m_spCSVWriter)
+        cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
+        std::map<DetectionTypes::DetectorType, std::vector<YOLOv11ONNX::Detection>> detections;
+        if (m_spDetectorsHandler)
         {
-            UpdateCSV(detections);
+            std::map<DetectionTypes::DetectorType, bool> objectsToDisplay;
+            objectsToDisplay[DetectionTypes::DetectorType::HANDS] = m_displayHands->isChecked();
+            objectsToDisplay[DetectionTypes::DetectorType::BOTTLES] = m_displayBottles->isChecked();
+            objectsToDisplay[DetectionTypes::DetectorType::PETRI_DISHES] = m_displayPetriDishes->isChecked();
+            m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, objectsToDisplay, detections);
+            if (m_spCSVWriter)
+            {
+                UpdateCSV(detections);
+            }
+            if (m_spObjectTracker)
+            {
+                m_spObjectTracker->AddNewDetections(detections);
+                uint32_t bottleCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectorType::BOTTLES);
+                uint32_t petriDishCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectorType::PETRI_DISHES);
+                std::string bottleCountStr = "Bottles: " + std::to_string(bottleCount);
+                std::string petriDishCountStr = "Petri Dishes: " + std::to_string(petriDishCount);
+                if (m_bottleCountLabel)
+                {
+                    m_bottleCountLabel->setText(QString::fromStdString(bottleCountStr));
+                }
+                if (m_petriDishCountLabel)
+                {
+                    m_petriDishCountLabel->setText(QString::fromStdString(petriDishCountStr));
+                }
+            }
         }
-        if (m_spObjectTracker)
-        {
-            m_spObjectTracker->AddNewDetections(detections);
-            uint32_t bottleCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectorType::BOTTLES);
-            uint32_t petriDishCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectorType::PETRI_DISHES);
-            std::string bottleCountStr = "Bottles: " + std::to_string(bottleCount);
-            std::string petriDishCountStr = "Petri Dishes: " + std::to_string(petriDishCount);
-            m_bottleCountLabel->setText(QString::fromStdString(bottleCountStr));
-            m_petriDishCountLabel->setText(QString::fromStdString(petriDishCountStr));
-        }
+        QImage qimg(frame.data, frame.cols, frame.rows, static_cast<uint32_t>(frame.step), QImage::Format_RGB888);
+
+        QPixmap pix = QPixmap::fromImage(qimg).scaled(m_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+        m_label->setPixmap(pix);
     }
-    QImage qimg(frame.data, frame.cols, frame.rows, static_cast<uint32_t>(frame.step), QImage::Format_RGB888);
-
-    QPixmap pix = QPixmap::fromImage(qimg).scaled(m_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-    m_label->setPixmap(pix);
 }
 
 bool VideoPlayer::InitialiseCSVWriter()
