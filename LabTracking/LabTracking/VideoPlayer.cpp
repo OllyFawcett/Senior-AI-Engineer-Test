@@ -83,7 +83,7 @@ void VideoPlayer::UpdateFrame()
             }
             if (m_spObjectTracker)
             {
-                m_spObjectTracker->AddNewDetections(detections);
+                m_spObjectTracker->AddNewDetections(frame, detections);
                 uint32_t bottleCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectionType::BOTTLES);
                 uint32_t petriDishCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectionType::PETRI_DISHES);
                 std::string bottleCountStr = "Bottles: " + std::to_string(bottleCount);
