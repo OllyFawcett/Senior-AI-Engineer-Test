@@ -15,6 +15,16 @@ QLabel* LabTracking::GetCameraViewLabel() const
     return ui.cameraViewLabel; 
 }
 
+QLabel* LabTracking::GetBottleCountLabel() const
+{
+    return ui.UniqueBottles;
+}
+
+QLabel* LabTracking::GetPetriDishCountLabel() const
+{
+    return ui.UniquePetriDishes;
+}
+
 QCheckBox* LabTracking::GetCheckBox(const DetectionTypes::DetectorType detectionType) const
 {
     QCheckBox* selectedCheckBox = nullptr;

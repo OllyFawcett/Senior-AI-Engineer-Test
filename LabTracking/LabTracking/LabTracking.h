@@ -13,6 +13,8 @@ public:
     ~LabTracking();
 
     QLabel* GetCameraViewLabel() const;
+    QLabel* GetBottleCountLabel() const;
+    QLabel* GetPetriDishCountLabel() const;
     QCheckBox* GetCheckBox(const DetectionTypes::DetectorType detectionType) const;
 
 private:

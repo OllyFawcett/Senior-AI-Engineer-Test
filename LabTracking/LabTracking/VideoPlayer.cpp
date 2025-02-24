@@ -1,6 +1,7 @@
 #include "VideoPlayer.h"
 #include <QImage>
 #include <QPixmap>
+#include <QString>
 #include <chrono>
 #include <iomanip>
 #include <sstream>
@@ -10,15 +11,19 @@ const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_HAND_DETECTIONS = "Ha
 const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_BOTTLE_DETECTIONS = "Bottle Detections";
 const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS = "Petri Dish Detections";
 
-VideoPlayer::VideoPlayer(const std::string& videoPath, QLabel* displayLabel, QCheckBox* displayBottles, QCheckBox* displayHands,
-    QCheckBox* displayPetriDishes, const std::shared_ptr<DetectorsHandler> spDetectorsHandler, const std::shared_ptr<CSVWriter> spCSVWriter, QObject* parent)
+VideoPlayer::VideoPlayer(const std::string& videoPath, QLabel* displayLabel, QLabel* bottleCount, QLabel* petriDishCount, QCheckBox* displayBottles, QCheckBox* displayHands,
+    QCheckBox* displayPetriDishes, const std::shared_ptr<DetectorsHandler> spDetectorsHandler, const std::shared_ptr<CSVWriter> spCSVWriter,
+    std::shared_ptr<ObjectTracker> spObjectTracker, QObject* parent)
     : QObject(parent)
+    , m_bottleCountLabel(bottleCount)
+    , m_petriDishCountLabel(petriDishCount)
     , m_label(displayLabel)
     , m_displayBottles(displayBottles)
     , m_displayHands(displayHands)
     , m_displayPetriDishes(displayPetriDishes)
     , m_spDetectorsHandler(spDetectorsHandler)
     , m_spCSVWriter(spCSVWriter)
+    , m_spObjectTracker(spObjectTracker)
 {
     m_cap.open(videoPath);
     if (!m_cap.isOpened()) {
@@ -75,8 +80,17 @@ void VideoPlayer::UpdateFrame()
         {
             UpdateCSV(detections);
         }
+        if (m_spObjectTracker)
+        {
+            m_spObjectTracker->AddNewDetections(detections);
+            uint32_t bottleCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectorType::BOTTLES);
+            uint32_t petriDishCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectorType::PETRI_DISHES);
+            std::string bottleCountStr = "Bottles: " + std::to_string(bottleCount);
+            std::string petriDishCountStr = "Petri Dishes: " + std::to_string(petriDishCount);
+            m_bottleCountLabel->setText(QString::fromStdString(bottleCountStr));
+            m_petriDishCountLabel->setText(QString::fromStdString(petriDishCountStr));
+        }
     }
-
     QImage qimg(frame.data, frame.cols, frame.rows, static_cast<uint32_t>(frame.step), QImage::Format_RGB888);
 
     QPixmap pix = QPixmap::fromImage(qimg).scaled(m_label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
