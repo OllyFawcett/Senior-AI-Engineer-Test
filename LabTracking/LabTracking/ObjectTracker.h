@@ -19,15 +19,22 @@ public:
 		cv::Scalar colour;
 		ObjectState state;
 	};
+	struct HandInteractions
+	{
+		bool touchingPetriDish;
+		bool touchingBottle;
+	};
 	ObjectTracker(const std::map<DetectionTypes::DetectionType, bool>& objectsToTrack, const float maxDistanceForMatch);
 	
 	std::vector<std::pair<YOLOv11ONNX::Detection, Object>> AddNewDetections(const cv::Mat& image, std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections);
 	uint32_t GetUniqueDetectionCount(const DetectionTypes::DetectionType detectorType);
 	uint32_t GetUnMatchedDetectionCount(const DetectionTypes::DetectionType detectorType);
+	HandInteractions CheckHandTouches(const std::vector<std::pair<YOLOv11ONNX::Detection, Object>>& items);
 
 private:
 	Object GenerateObject(const cv::Mat& image, const DetectionTypes::DetectionType& detectionType, const YOLOv11ONNX::Detection& detection);
 	bool CheckForStateChange(const Object& previousObject, const Object& newObject, const float tolerance, ObjectState& state);
+	bool BoxesOverlap(const YOLOv11ONNX::Detection& detection1, const YOLOv11ONNX::Detection& detection2);
 
 	float m_maxDistanceForMatch;
 	std::map<DetectionTypes::DetectionType, bool> m_objectsToTrack;

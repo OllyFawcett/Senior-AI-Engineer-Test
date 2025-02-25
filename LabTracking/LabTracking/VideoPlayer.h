@@ -26,11 +26,14 @@ private:
     static const std::string CSV_COLUMN_HEADER_TIME;
     static const std::string CSV_COLUMN_HEADER_NUMBER_OF_HAND_DETECTIONS;
     static const std::string CSV_COLUMN_HEADER_NUMBER_OF_BOTTLE_DETECTIONS;
-    static const std::string CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS;
+    static const std::string CSV_COLUMN_HEADER_NUMBER_OF_UNFILLED_PETRI_DISH_DETECTIONS;
+    static const std::string CSV_COLUMN_HEADER_NUMBER_OF_FILLED_PETRI_DISH_DETECTIONS;
+    static const std::string CSV_COLUMN_HEADER_HAND_TOUCHING_PETRI_DISH;
+    static const std::string CSV_COLUMN_HEADER_HAND_TOUCHING_BOTTLE;
 
     bool InitialiseCSVWriter();
     bool DrawDetectionsOnImage(cv::Mat& image, std::map<DetectionTypes::DetectionType, bool>& objectsToDisplay, std::vector<std::pair<YOLOv11ONNX::Detection, ObjectTracker::Object>>& detections);
-    bool UpdateCSV(std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections);
+    bool UpdateCSV(std::vector<std::pair<YOLOv11ONNX::Detection, ObjectTracker::Object>>& detections, ObjectTracker::HandInteractions& handInteactions);
     std::string GetCurrentDataTimeStr();
 
     std::shared_ptr<DetectorsHandler> m_spDetectorsHandler;

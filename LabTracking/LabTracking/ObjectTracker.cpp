@@ -149,3 +149,72 @@ bool ObjectTracker::CheckForStateChange(const Object& previousObject, const Obje
 	}
 	return changed;
 }
+
+bool ObjectTracker::BoxesOverlap(const YOLOv11ONNX::Detection& detection1, const YOLOv11ONNX::Detection& detection2)
+{
+	const YOLOv11ONNX::BoundingBox& a = detection1.box;
+	const YOLOv11ONNX::BoundingBox& b = detection2.box;
+	return (a.x < b.x + b.width &&
+		a.x + a.width > b.x &&
+		a.y < b.y + b.height &&
+		a.y + a.height > b.y);
+}
+
+ObjectTracker::HandInteractions ObjectTracker::CheckHandTouches(const std::vector<std::pair<YOLOv11ONNX::Detection, Object>>& items)
+{
+	ObjectTracker::HandInteractions handInteractions = { false, false };
+
+	std::vector<YOLOv11ONNX::Detection> handDetections;
+	std::vector<YOLOv11ONNX::Detection> petriDishDetections;
+	std::vector<YOLOv11ONNX::Detection> bottleDetections;
+
+	for (const std::pair<YOLOv11ONNX::Detection, Object>& pair : items) 
+	{
+		switch (pair.second.type)
+		{
+		case(DetectionTypes::DetectionType::HANDS):
+			handDetections.push_back(pair.first);
+			break;
+		case(DetectionTypes::DetectionType::BOTTLES):
+			bottleDetections.push_back(pair.first);
+			break;
+		case(DetectionTypes::DetectionType::PETRI_DISHES):
+			petriDishDetections.push_back(pair.first);
+			break;
+		}
+	}
+
+	for (const YOLOv11ONNX::Detection& hand : handDetections)
+	{
+		for (const YOLOv11ONNX::Detection& petri : petriDishDetections)
+		{
+			if (BoxesOverlap(hand, petri))
+			{
+				handInteractions.touchingPetriDish = true;
+				break;
+			}
+		}
+		if (handInteractions.touchingPetriDish)
+		{
+			break;
+		}
+	}
+
+	for (const YOLOv11ONNX::Detection& hand : handDetections)
+	{
+		for (const YOLOv11ONNX::Detection& bottle : bottleDetections)
+		{
+			if (BoxesOverlap(hand, bottle))
+			{
+				handInteractions.touchingPetriDish = true;
+				break;
+			}
+		}
+		if (handInteractions.touchingPetriDish)
+		{
+			break;
+		}
+	}
+
+	return handInteractions;
+}

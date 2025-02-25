@@ -10,7 +10,10 @@
 const std::string VideoPlayer::CSV_COLUMN_HEADER_TIME = "Time";
 const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_HAND_DETECTIONS = "Hand Detections";
 const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_BOTTLE_DETECTIONS = "Bottle Detections";
-const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS = "Petri Dish Detections";
+const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_UNFILLED_PETRI_DISH_DETECTIONS = "Unfilled Petri Dish Detections";
+const std::string VideoPlayer::CSV_COLUMN_HEADER_NUMBER_OF_FILLED_PETRI_DISH_DETECTIONS = "Filled Petri Dish Detections";
+const std::string VideoPlayer::CSV_COLUMN_HEADER_HAND_TOUCHING_PETRI_DISH = "Hand Touching Petri Dish";
+const std::string VideoPlayer::CSV_COLUMN_HEADER_HAND_TOUCHING_BOTTLE = "Hand Touching Bottle";
 
 VideoPlayer::VideoPlayer(const std::string& videoPath, QLabel* displayLabel, QLabel* bottleCount, QLabel* petriDishCount, QCheckBox* displayBottles, QCheckBox* displayHands,
     QCheckBox* displayPetriDishes, const std::shared_ptr<DetectorsHandler> spDetectorsHandler, const std::shared_ptr<CSVWriter> spCSVWriter,
@@ -81,18 +84,19 @@ void VideoPlayer::UpdateFrame()
             objectsToDisplay[DetectionTypes::DetectionType::BOTTLES] = m_displayBottles->isChecked();
             objectsToDisplay[DetectionTypes::DetectionType::PETRI_DISHES] = m_displayPetriDishes->isChecked();
             m_spDetectorsHandler->Detect(frame, objectsToDisplay, detections);
-            if (m_spCSVWriter)
-            {
-                UpdateCSV(detections);
-            }
             if (m_spObjectTracker)
             {
                 std::vector<std::pair<YOLOv11ONNX::Detection, ObjectTracker::Object>> trackedDetections = m_spObjectTracker->AddNewDetections(frame, detections);
+                ObjectTracker::HandInteractions handInteractions = m_spObjectTracker->CheckHandTouches(trackedDetections);
                 DrawDetectionsOnImage(frame, objectsToDisplay, trackedDetections);
                 uint32_t bottleCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectionType::BOTTLES);
                 uint32_t petriDishCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectionType::PETRI_DISHES);
                 std::string bottleCountStr = "Bottles: " + std::to_string(bottleCount);
                 std::string petriDishCountStr = "Petri Dishes: " + std::to_string(petriDishCount);
+                if (m_spCSVWriter)
+                {
+                    UpdateCSV(trackedDetections, handInteractions);
+                }
                 if (m_bottleCountLabel)
                 {
                     m_bottleCountLabel->setText(QString::fromStdString(bottleCountStr));
@@ -119,7 +123,10 @@ bool VideoPlayer::InitialiseCSVWriter()
         m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_TIME);
         m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_HAND_DETECTIONS);
         m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_BOTTLE_DETECTIONS);
-        m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS);
+        m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_UNFILLED_PETRI_DISH_DETECTIONS);
+        m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_FILLED_PETRI_DISH_DETECTIONS);
+        m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_HAND_TOUCHING_PETRI_DISH);
+        m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_HAND_TOUCHING_BOTTLE);
         success = true;
     }
     return success;
@@ -158,33 +165,49 @@ bool VideoPlayer::DrawDetectionsOnImage(cv::Mat& image, std::map<DetectionTypes:
     return success;
 }
 
-bool VideoPlayer::UpdateCSV(std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections)
+bool VideoPlayer::UpdateCSV(std::vector<std::pair<YOLOv11ONNX::Detection, ObjectTracker::Object>>& detections, ObjectTracker::HandInteractions& handInteractions)
 {
     bool success = false;
     if (m_spCSVWriter)
     {
         uint32_t handDetections = 0;
         uint32_t bottleDetections = 0;
-        uint32_t petriDishDetections = 0;
+        uint32_t filledPetriDishDetections = 0;
+        uint32_t unfilledPetriDishDetections = 0;
+        bool handTouchingBottle = handInteractions.touchingBottle;
+        bool handTouchingPetriDish = handInteractions.touchingPetriDish;
         std::string dateTimeStr = GetCurrentDataTimeStr();
 
-        if (detections.find(DetectionTypes::DetectionType::HANDS) != detections.end())
+        for (const std::pair<YOLOv11ONNX::Detection, ObjectTracker::Object> detection : detections)
         {
-            handDetections = detections[DetectionTypes::DetectionType::HANDS].size();
-        }
-        if (detections.find(DetectionTypes::DetectionType::BOTTLES) != detections.end())
-        {
-            handDetections = detections[DetectionTypes::DetectionType::BOTTLES].size();
-        }
-        if (detections.find(DetectionTypes::DetectionType::PETRI_DISHES) != detections.end())
-        {
-            handDetections = detections[DetectionTypes::DetectionType::PETRI_DISHES].size();
-        }
+            if (detection.second.type == DetectionTypes::DetectionType::BOTTLES)
+            {
+                bottleDetections += 1;
+            }
+            else if (detection.second.type == DetectionTypes::DetectionType::HANDS)
+            {
+                handDetections += 1;
+            }
+            else if (detection.second.type == DetectionTypes::DetectionType::PETRI_DISHES)
+            {
+                if (detection.second.state == ObjectTracker::ObjectState::FILLED)
+                {
+                    filledPetriDishDetections += 1;
+                }
+                else if (detection.second.state == ObjectTracker::ObjectState::UNKNOWN)
+                {
+                    unfilledPetriDishDetections += 1;
+                }
 
+            }
+        }
         m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_TIME, dateTimeStr);
         m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_NUMBER_OF_HAND_DETECTIONS, std::to_string(handDetections));
         m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_NUMBER_OF_BOTTLE_DETECTIONS, std::to_string(bottleDetections));
-        m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS, std::to_string(petriDishDetections));
+        m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_NUMBER_OF_UNFILLED_PETRI_DISH_DETECTIONS, std::to_string(unfilledPetriDishDetections));
+        m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_NUMBER_OF_FILLED_PETRI_DISH_DETECTIONS, std::to_string(filledPetriDishDetections));
+        m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_HAND_TOUCHING_BOTTLE, std::to_string(handTouchingBottle));
+        m_spCSVWriter->AddRowValue(CSV_COLUMN_HEADER_HAND_TOUCHING_PETRI_DISH, std::to_string(handTouchingPetriDish));
 
         m_spCSVWriter->WriteRow();
     }
