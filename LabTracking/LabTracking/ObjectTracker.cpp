@@ -6,9 +6,10 @@ ObjectTracker::ObjectTracker(const std::map<DetectionTypes::DetectionType, bool>
 {
 }
 
-bool ObjectTracker::AddNewDetections(const cv::Mat& image, std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections)
+std::vector<std::pair<YOLOv11ONNX::Detection, ObjectTracker::Object>> ObjectTracker::AddNewDetections(const cv::Mat& image, std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections)
 {
 	bool success = false;
+	std::vector<std::pair<YOLOv11ONNX::Detection, Object>> generatedObjects;
 	if (!detections.empty() and !image.empty())
 	{
 		for (std::pair<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>> detectorAndDetection : detections)
@@ -17,61 +18,81 @@ bool ObjectTracker::AddNewDetections(const cv::Mat& image, std::map<DetectionTyp
 			{
 				bool addedDetection = false;
 				Object object = GenerateObject(image, detectorAndDetection.first, detection);
-				if (m_uniqueDetectionCentroidsAndColour[detectorAndDetection.first].empty() and
-					m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].empty())
+				if (!m_objectsToTrack[detectorAndDetection.first])
 				{
-					m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].push_back(object);
-					addedDetection = true;
+					generatedObjects.push_back({ detection, object });
 				}
-				else if (!m_uniqueDetectionCentroidsAndColour[detectorAndDetection.first].empty())
+				else
 				{
-					for (auto it = m_uniqueDetectionCentroidsAndColour[detectorAndDetection.first].begin();
-						it != m_uniqueDetectionCentroidsAndColour[detectorAndDetection.first].end(); ++it)
-					{
-						float dx = it->centroid.x - object.centroid.x;
-						float dy = it->centroid.y - object.centroid.y;
-						float dist = std::sqrt(dx * dx + dy * dy);
-
-						if (dist < m_maxDistanceForMatch)
-						{
-							it->centroid.x = object.centroid.x;
-							it->centroid.y = object.centroid.y;
-							addedDetection = true;
-							break;
-						}
-					}
-				}
-				if (!addedDetection)
-				{
-					bool foundMatch = false;
-					for (auto it = m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].begin();
-						it != m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].end();)
-					{
-						float dx = it->centroid.x - object.centroid.x;
-						float dy = it->centroid.y - object.centroid.y;
-						float dist = std::sqrt(dx * dx + dy * dy);
-
-						if (dist < m_maxDistanceForMatch)
-						{
-							m_uniqueDetectionCentroidsAndColour[detectorAndDetection.first].push_back(object);
-							it = m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].erase(it);
-							foundMatch = true;
-							break;
-						}
-						else
-						{
-							++it;
-						}
-					}
-					if (!foundMatch)
+					if (m_uniqueDetectionCentroidsAndColour[detectorAndDetection.first].empty() and
+						m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].empty())
 					{
 						m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].push_back(object);
+						generatedObjects.push_back({ detection, object });
+						addedDetection = true;
+					}
+					else if (!m_uniqueDetectionCentroidsAndColour[detectorAndDetection.first].empty())
+					{
+						for (auto it = m_uniqueDetectionCentroidsAndColour[detectorAndDetection.first].begin();
+							it != m_uniqueDetectionCentroidsAndColour[detectorAndDetection.first].end(); ++it)
+						{
+							float dx = it->centroid.x - object.centroid.x;
+							float dy = it->centroid.y - object.centroid.y;
+							float dist = std::sqrt(dx * dx + dy * dy);
+
+							if (dist < m_maxDistanceForMatch)
+							{
+								//State is currently only relevent to petri dishes 
+								if (detectorAndDetection.first == DetectionTypes::DetectionType::PETRI_DISHES)
+								{
+									ObjectState newState = object.state;
+									CheckForStateChange(*it, object, 15, newState);
+									object.state = newState;
+								}
+								it->centroid.x = object.centroid.x;
+								it->centroid.y = object.centroid.y;
+								it->state = object.state;
+								addedDetection = true;
+								generatedObjects.push_back({ detection, object });
+								break;
+							}
+						}
+					}
+					if (!addedDetection)
+					{
+						bool foundMatch = false;
+						for (auto it = m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].begin();
+							it != m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].end();)
+						{
+							float dx = it->centroid.x - object.centroid.x;
+							float dy = it->centroid.y - object.centroid.y;
+							float dist = std::sqrt(dx * dx + dy * dy);
+
+							if (dist < m_maxDistanceForMatch)
+							{
+								m_uniqueDetectionCentroidsAndColour[detectorAndDetection.first].push_back(object);
+								it = m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].erase(it);
+								foundMatch = true;
+								generatedObjects.push_back({ detection, object });
+								break;
+							}
+							else
+							{
+								++it;
+							}
+						}
+						if (!foundMatch)
+						{
+							m_unmatchedDetectionCentroidsAndColour[detectorAndDetection.first].push_back(object);
+							generatedObjects.push_back({ detection, object });
+						}
 					}
 				}
 			}
 		}
+
 	}
-	return success;
+	return generatedObjects;
 }
 
 uint32_t ObjectTracker::GetUniqueDetectionCount(const DetectionTypes::DetectionType DetectionType)
@@ -89,6 +110,7 @@ ObjectTracker::Object ObjectTracker::GenerateObject(const cv::Mat& image, const 
 	Object object;
 	object.centroid.x = detection.box.x + (detection.box.width / 2);
 	object.centroid.y = detection.box.y + (detection.box.height / 2);
+	object.type = detectionType;
 
 	cv::Rect roi(detection.box.x, detection.box.y, detection.box.width, detection.box.height);
 
@@ -108,4 +130,22 @@ ObjectTracker::Object ObjectTracker::GenerateObject(const cv::Mat& image, const 
 		object.state = ObjectState::UNKNOWN;
 	}
 	return object;
+}
+
+bool ObjectTracker::CheckForStateChange(const Object& previousObject, const Object& newObject, const float tolerance, ObjectState& state)
+{
+	bool changed = false;
+	if (previousObject.state == ObjectState::FILLED)
+	{
+		double diffB = std::abs(previousObject.colour[0] - newObject.colour[0]);
+		double diffG = std::abs(previousObject.colour[1] - newObject.colour[1]);
+		double diffR = std::abs(previousObject.colour[2] - newObject.colour[2]);
+
+		if ((diffB > tolerance) || (diffG > tolerance) || (diffR > tolerance))
+		{
+			changed = true;
+			state = ObjectState::FILLED;
+		}
+	}
+	return changed;
 }

@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
             const std::map<DetectionTypes::DetectionType, bool> objectsToTrack = { {DetectionTypes::DetectionType::BOTTLES, true},
                                                                                   {DetectionTypes::DetectionType::PETRI_DISHES, true},
                                                                                   {DetectionTypes::DetectionType::HANDS, false} };
-            const float maxDistanceForMatch = 30;
+            const float maxDistanceForMatch = 60;
 
             std::shared_ptr<CSVWriter> spCSVWriter = std::make_shared<CSVWriter>(outputPaths.csvPath);
             std::shared_ptr<DetectorsHandler> spDetectorsHandler = std::make_shared<DetectorsHandler>();

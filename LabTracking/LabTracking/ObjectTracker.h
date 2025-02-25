@@ -14,18 +14,20 @@ public:
 	};
 	struct Object
 	{
+		DetectionTypes::DetectionType type;
 		cv::Point2f centroid;
 		cv::Scalar colour;
 		ObjectState state;
 	};
 	ObjectTracker(const std::map<DetectionTypes::DetectionType, bool>& objectsToTrack, const float maxDistanceForMatch);
 	
-	bool AddNewDetections(const cv::Mat& image, std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections);
+	std::vector<std::pair<YOLOv11ONNX::Detection, Object>> AddNewDetections(const cv::Mat& image, std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections);
 	uint32_t GetUniqueDetectionCount(const DetectionTypes::DetectionType detectorType);
 	uint32_t GetUnMatchedDetectionCount(const DetectionTypes::DetectionType detectorType);
 
 private:
 	Object GenerateObject(const cv::Mat& image, const DetectionTypes::DetectionType& detectionType, const YOLOv11ONNX::Detection& detection);
+	bool CheckForStateChange(const Object& previousObject, const Object& newObject, const float tolerance, ObjectState& state);
 
 	float m_maxDistanceForMatch;
 	std::map<DetectionTypes::DetectionType, bool> m_objectsToTrack;

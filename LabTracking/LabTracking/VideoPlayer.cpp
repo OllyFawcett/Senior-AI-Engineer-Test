@@ -1,4 +1,5 @@
 #include "VideoPlayer.h"
+#include "DetectionUtils.h"
 #include <QImage>
 #include <QPixmap>
 #include <QString>
@@ -37,6 +38,9 @@ VideoPlayer::VideoPlayer(const std::string& videoPath, QLabel* displayLabel, QLa
 
     connect(&m_timer, &QTimer::timeout, this, &VideoPlayer::UpdateFrame);
     InitialiseCSVWriter();
+    m_boxColours[DetectionTypes::DetectionType::HANDS] = cv::Scalar(255, 0, 0);
+    m_boxColours[DetectionTypes::DetectionType::PETRI_DISHES] = cv::Scalar(0, 255, 0);
+    m_boxColours[DetectionTypes::DetectionType::BOTTLES] = cv::Scalar(0, 0, 255);
 }
 
 VideoPlayer::~VideoPlayer()
@@ -76,14 +80,15 @@ void VideoPlayer::UpdateFrame()
             objectsToDisplay[DetectionTypes::DetectionType::HANDS] = m_displayHands->isChecked();
             objectsToDisplay[DetectionTypes::DetectionType::BOTTLES] = m_displayBottles->isChecked();
             objectsToDisplay[DetectionTypes::DetectionType::PETRI_DISHES] = m_displayPetriDishes->isChecked();
-            m_spDetectorsHandler->DetectAndCreateDisplayImage(frame, objectsToDisplay, detections);
+            m_spDetectorsHandler->Detect(frame, objectsToDisplay, detections);
             if (m_spCSVWriter)
             {
                 UpdateCSV(detections);
             }
             if (m_spObjectTracker)
             {
-                m_spObjectTracker->AddNewDetections(frame, detections);
+                std::vector<std::pair<YOLOv11ONNX::Detection, ObjectTracker::Object>> trackedDetections = m_spObjectTracker->AddNewDetections(frame, detections);
+                DrawDetectionsOnImage(frame, objectsToDisplay, trackedDetections);
                 uint32_t bottleCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectionType::BOTTLES);
                 uint32_t petriDishCount = m_spObjectTracker->GetUniqueDetectionCount(DetectionTypes::DetectionType::PETRI_DISHES);
                 std::string bottleCountStr = "Bottles: " + std::to_string(bottleCount);
@@ -115,6 +120,39 @@ bool VideoPlayer::InitialiseCSVWriter()
         m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_HAND_DETECTIONS);
         m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_BOTTLE_DETECTIONS);
         m_spCSVWriter->AddColumnHeader(CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS);
+        success = true;
+    }
+    return success;
+}
+
+bool VideoPlayer::DrawDetectionsOnImage(cv::Mat& image, std::map<DetectionTypes::DetectionType, bool>& objectsToDisplay, std::vector<std::pair<YOLOv11ONNX::Detection, ObjectTracker::Object>>& detections)
+{
+    bool success = true;
+    if (!image.empty() and !detections.empty())
+    {
+        for (const std::pair<YOLOv11ONNX::Detection, ObjectTracker::Object>& detection : detections)
+        {
+            if (objectsToDisplay.find(detection.second.type) != objectsToDisplay.end())
+            {
+                if (objectsToDisplay[detection.second.type])
+                {
+                    std::string detectionTypeStr = DetectionUtils::DetectionTypeToString(detection.second.type);
+                    cv::rectangle(image, cv::Point(detection.first.box.x, detection.first.box.y),
+                        cv::Point(detection.first.box.x + detection.first.box.width, detection.first.box.y + detection.first.box.height),
+                        m_boxColours[detection.second.type], 2, cv::LINE_AA);
+                    std::string displayString = detectionTypeStr;
+                    if (detection.second.state == ObjectTracker::ObjectState::UN_FILLED)
+                    {
+                        displayString += ": UNFILLED";
+                    }
+                    else if (detection.second.state == ObjectTracker::ObjectState::FILLED)
+                    {
+                        displayString += ": FILLED";
+                    }
+                    cv::putText(image, displayString, cv::Point(detection.first.box.x, detection.first.box.y + 40), 0, 1, m_boxColours[detection.second.type], 2);
+                }
+            }
+        }
         success = true;
     }
     return success;

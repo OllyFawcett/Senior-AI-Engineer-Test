@@ -29,8 +29,10 @@ private:
     static const std::string CSV_COLUMN_HEADER_NUMBER_OF_PETRI_DISH_DETECTIONS;
 
     bool InitialiseCSVWriter();
+    bool DrawDetectionsOnImage(cv::Mat& image, std::map<DetectionTypes::DetectionType, bool>& objectsToDisplay, std::vector<std::pair<YOLOv11ONNX::Detection, ObjectTracker::Object>>& detections);
     bool UpdateCSV(std::map<DetectionTypes::DetectionType, std::vector<YOLOv11ONNX::Detection>>& detections);
     std::string GetCurrentDataTimeStr();
+
     std::shared_ptr<DetectorsHandler> m_spDetectorsHandler;
     std::shared_ptr<CSVWriter> m_spCSVWriter;
     std::shared_ptr<ObjectTracker> m_spObjectTracker;
@@ -42,6 +44,7 @@ private:
     QCheckBox* m_displayHands;
     QCheckBox* m_displayPetriDishes;
     QTimer m_timer;
+    std::map<DetectionTypes::DetectionType, cv::Scalar> m_boxColours;
     float m_fps;
 };
 
